@@ -11,6 +11,7 @@
 
 use Exception;
 use houdunwang\ArrayAccess;
+use houdunwang\page\Page;
 
 class Query implements \ArrayAccess, \Iterator {
 	use \houdunwang\db\ArrayAccess;
@@ -153,6 +154,17 @@ class Query implements \ArrayAccess, \Iterator {
 	}
 
 	/**
+	 * 获取分页对象
+	 * @return Page|null
+	 */
+	protected function page(){
+		static $page=null;
+		if(is_null($page)){
+			$page = new Page();
+		}
+		return $page;
+	}
+	/**
 	 * 分页查询
 	 *
 	 * @param $row 每页显示数量
@@ -162,7 +174,7 @@ class Query implements \ArrayAccess, \Iterator {
 	 */
 	public function paginate( $row, $pageNum = 8 ) {
 		$obj = unserialize( serialize( $this ) );
-		\Page::row( $row )->pageNum( $pageNum )->make( $obj->count() );
+		$this->page()->row( $row )->pageNum( $pageNum )->make( $obj->count() );
 		$res     = $this->limit( \Page::limit() )->get();
 		$collect = Collection::make( [ ] );
 		if ( $res ) {
@@ -177,7 +189,7 @@ class Query implements \ArrayAccess, \Iterator {
 	 * @return mixed
 	 */
 	public function links() {
-		return \Page::show();
+		return $this->page()->show();
 	}
 
 	/**
