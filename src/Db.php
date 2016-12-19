@@ -19,7 +19,7 @@ class Db {
 
 	//构造函数
 	public function __construct( $config ) {
-		$this->config = $config;
+		$this->setConfig( $config );
 	}
 
 	/**
@@ -31,7 +31,22 @@ class Db {
 	}
 
 	/**
-	 * 获取配置
+	 * 设置配置项
+	 *
+	 * @param $config
+	 */
+	protected function setConfig( $config ) {
+		if ( empty( $config['write'] ) ) {
+			$config['write'][] = $config;
+		}
+		if ( empty( $config['read'] ) ) {
+			$config['read'][] = $config;
+		}
+		$this->config = $config;
+	}
+
+	/**
+	 * 获取配置项
 	 *
 	 * @param $key
 	 *

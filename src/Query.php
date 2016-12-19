@@ -31,13 +31,13 @@ class Query implements \ArrayAccess, \Iterator {
 	protected $build;
 
 	public function __construct( $db ) {
-		$this->connection();
 		$this->db = $db;
+		$this->connection();
 	}
 
 	public function connection() {
-		$class            = '\hdphp\db\connection\\' . ucfirst( $this->db->get( 'driver' ) );
-		$this->connection = new $class($this->db);
+		$class            = '\houdunwang\db\connection\\' . ucfirst( $this->db->get( 'driver' ) );
+		$this->connection = new $class( $this->db );
 	}
 
 	/**
@@ -46,8 +46,8 @@ class Query implements \ArrayAccess, \Iterator {
 	 */
 	public function build() {
 		if ( ! $this->build ) {
-			$driver      = 'hdphp\db\build\\' . ucfirst(  $this->db->get( 'driver' ) );
-			$this->build = new $driver( $this->getTable() );
+			$driver      = 'houdunwang\db\build\\' . ucfirst( $this->db->get( 'driver' ) );
+			$this->build = new $driver( $this->getTable(), $this->db );
 		}
 
 		return $this->build;
@@ -69,9 +69,9 @@ class Query implements \ArrayAccess, \Iterator {
 		//模型实例时不允许改表名
 		$this->table = $this->table ?: $this->db->get( 'prefix' ) . $table;
 		//缓存表字段
-		$this->fields = \Schema::getFields( $table );
+		$this->fields = $this->getFields( $table );
 		//获取表主键
-		$this->primaryKey = \Schema::getPrimaryKey( $table );
+		$this->primaryKey = $this->getPrimaryKey( $table );
 
 		return $this;
 	}
@@ -84,21 +84,21 @@ class Query implements \ArrayAccess, \Iterator {
 		return $this->table;
 	}
 
-	/**
-	 * 获取表字段
-	 * @return array|bool
-	 */
-	public function getFields() {
-		return $this->fields;
-	}
+//	/**
+//	 * 获取表字段
+//	 * @return array|bool
+//	 */
+//	public function getFields() {
+//		return $this->fields;
+//	}
 
-	/**
-	 * 获取表主键
-	 * @return mixed
-	 */
-	public function getPrimaryKey() {
-		return $this->primaryKey;
-	}
+//	/**
+//	 * 获取表主键
+//	 * @return mixed
+//	 */
+//	public function getPrimaryKey() {
+//		return $this->primaryKey;
+//	}
 
 	/**
 	 * 移除表中不存在的字段
@@ -118,6 +118,89 @@ class Query implements \ArrayAccess, \Iterator {
 		}
 
 		return $new;
+	}
+
+	/**
+	 * 获取表字段信息
+	 *
+	 * @param string $table
+	 *
+	 * @return array|bool|void
+	 */
+	public function getFields( $table ) {
+		static $cache = [ ];
+		if ( isset( $cache[ $table ] ) ) {
+			return $cache[ $table ];
+		}
+		$name = $this->db->get( 'database' ) . '.' . $table;
+		//缓存字段
+		$data = $this->cache( $name );
+		if ( empty( $data ) ) {
+			$sql = "show columns from " . $this->db->get( 'prefix' ) . $table;
+			if ( ! $result = $this->query( $sql ) ) {
+				return [ ];
+			}
+			$data = [ ];
+			foreach ( (array) $result as $res ) {
+				$f ['field']             = $res ['Field'];
+				$f ['type']              = $res ['Type'];
+				$f ['null']              = $res ['Null'];
+				$f ['field']             = $res ['Field'];
+				$f ['key']               = ( $res ['Key'] == "PRI" && $res['Extra'] ) || $res ['Key'] == "PRI";
+				$f ['default']           = $res ['Default'];
+				$f ['extra']             = $res ['Extra'];
+				$data [ $res ['Field'] ] = $f;
+			}
+			$this->cache( $name, $data );
+		}
+
+		return $data;
+	}
+
+	/**
+	 * 获取表主键
+	 *
+	 * @param $table
+	 *
+	 * @return mixed
+	 */
+	public function getPrimaryKey( $table ) {
+		static $cache = [ ];
+		if ( isset( $cache[ $table ] ) ) {
+			return $cache[ $table ];
+		}
+		$fields = $this->getFields( $table );
+		foreach ( $fields as $v ) {
+			if ( $v['key'] == 1 ) {
+				return $cache[ $table ] = $v['field'];
+			}
+		}
+	}
+
+	/**
+	 * 缓存表字段
+	 *
+	 * @param $name
+	 * @param null $data
+	 *
+	 * @return int|null|void
+	 */
+	public function cache( $name, $data = null ) {
+		if ( $this->db->get( 'debug' ) ) {
+			return;
+		}
+		//缓存文件
+		$file = $this->db->get( 'cacheDir' ) . '/' . md5( $name ) . '.php';
+		//读取数据
+		if ( is_null( $data ) && is_file( $file ) ) {
+			$data = file_get_contents( $file );
+
+			return unserialize( $data ) ?: null;
+		}
+		//写入数据
+		$data = serialize( $data );
+
+		return file_put_contents( $file, $data );
 	}
 
 	/**
@@ -157,13 +240,15 @@ class Query implements \ArrayAccess, \Iterator {
 	 * 获取分页对象
 	 * @return Page|null
 	 */
-	protected function page(){
-		static $page=null;
-		if(is_null($page)){
+	protected function page() {
+		static $page = null;
+		if ( is_null( $page ) ) {
 			$page = new Page();
 		}
+
 		return $page;
 	}
+
 	/**
 	 * 分页查询
 	 *

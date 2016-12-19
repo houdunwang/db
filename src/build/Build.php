@@ -1,13 +1,13 @@
 <?php namespace houdunwang\db\build;
 
-/** .-------------------------------------------------------------------
- * |  Software: [HDCMS framework]
- * |      Site: www.hdcms.com
- * |-------------------------------------------------------------------
- * |    Author: 向军 <2300071698@qq.com>
- * |    WeChat: aihoudun
- * | Copyright (c) 2012-2019, www.houdunwang.com. All Rights Reserved.
- * '-------------------------------------------------------------------*/
+	/** .-------------------------------------------------------------------
+	 * |  Software: [HDCMS framework]
+	 * |      Site: www.hdcms.com
+	 * |-------------------------------------------------------------------
+	 * |    Author: 向军 <2300071698@qq.com>
+	 * |    WeChat: aihoudun
+	 * | Copyright (c) 2012-2019, www.houdunwang.com. All Rights Reserved.
+	 * '-------------------------------------------------------------------*/
 /**
  * Class Build
  * @package hdphp\db
@@ -18,6 +18,8 @@
  * DELETE FROM %table% USING  %using% WHERE %where%
  */
 abstract class Build {
+	//外观类
+	protected $db;
 	//表名
 	protected $table;
 	//查询参数
@@ -33,7 +35,8 @@ abstract class Build {
 
 	abstract public function delete();
 
-	public function __construct( $table ) {
+	public function __construct( $table, $db ) {
+		$this->db    = $db;
 		$this->table = $table;
 	}
 
@@ -133,7 +136,7 @@ abstract class Build {
 
 	public function parseJoin() {
 		$expression = $this->getBindExpression( 'join' );
-		$as         = preg_replace( "/^" . c( 'database.prefix' ) . "/", '', $this->parseTable() );
+		$as         = preg_replace( "/^" . $this->db->get( 'prefix' ) . "/", '', $this->parseTable() );
 
 		return $expression ? $as . implode( ' ', $expression ) : '';
 	}
