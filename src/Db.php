@@ -8,18 +8,32 @@
  * | Copyright (c) 2012-2019, www.houdunwang.com. All Rights Reserved.
  * '-------------------------------------------------------------------*/
 namespace houdunwang\db;
+
+use houdunwang\config\Config;
+
 /**
  * Class Db
  * @package houdunwang\db
  */
 class Db {
-
-	//配置项
-	protected $config = [ ];
-
 	//构造函数
-	public function __construct( $config ) {
-		$this->setConfig( $config );
+	public function __construct() {
+		$this->setConfig();
+	}
+
+	/**
+	 * 设置配置项
+	 */
+	protected function setConfig() {
+		$instance = new Config();
+		$config   = $instance->get( 'database' );
+		if ( empty( $config['write'] ) ) {
+			$config['write'][] = $instance->getExtName( 'database', [ 'read', 'write' ] );
+		}
+		if ( empty( $config['read'] ) ) {
+			$config['read'][] = $instance->getExtName( 'database', [ 'read', 'write' ] );
+		}
+		$instance->set( 'database', $config );
 	}
 
 	/**
@@ -31,42 +45,6 @@ class Db {
 	}
 
 	/**
-	 * 设置配置项
-	 *
-	 * @param $config
-	 */
-	protected function setConfig( $config ) {
-		if ( empty( $config['write'] ) ) {
-			$config['write'][] = $config;
-		}
-		if ( empty( $config['read'] ) ) {
-			$config['read'][] = $config;
-		}
-		$this->config = $config;
-	}
-
-	/**
-	 * 获取配置项
-	 *
-	 * @param $key
-	 *
-	 * @return array|void|null
-	 */
-	public function get( $key ) {
-		$tmp    = $this->config;
-		$config = explode( '.', $key );
-		foreach ( (array) $config as $d ) {
-			if ( isset( $tmp[ $d ] ) ) {
-				$tmp = $tmp[ $d ];
-			} else {
-				return null;
-			}
-		}
-
-		return $tmp;
-	}
-
-	/**
 	 * @param $method
 	 * @param $params
 	 *
@@ -75,5 +53,4 @@ class Db {
 	public function __call( $method, $params ) {
 		return call_user_func_array( [ $this->connect(), $method ], $params );
 	}
-
 }

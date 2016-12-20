@@ -30,14 +30,13 @@ class Query implements \ArrayAccess, \Iterator {
 	//sql分析实例
 	protected $build;
 
-	public function __construct( $db ) {
-		$this->db = $db;
+	public function __construct() {
 		$this->connection();
 	}
 
 	public function connection() {
-		$class            = '\houdunwang\db\connection\\' . ucfirst( $this->db->get( 'driver' ) );
-		$this->connection = new $class( $this->db );
+		$class            = '\houdunwang\db\connection\\' . ucfirst( c( 'database.driver' ) );
+		$this->connection = new $class();
 	}
 
 	/**
@@ -46,8 +45,8 @@ class Query implements \ArrayAccess, \Iterator {
 	 */
 	public function build() {
 		if ( ! $this->build ) {
-			$driver      = 'houdunwang\db\build\\' . ucfirst( $this->db->get( 'driver' ) );
-			$this->build = new $driver( $this->getTable(), $this->db );
+			$driver      = 'houdunwang\db\build\\' . ucfirst( c( 'database.driver' ) );
+			$this->build = new $driver( $this->getTable() );
 		}
 
 		return $this->build;
@@ -55,7 +54,7 @@ class Query implements \ArrayAccess, \Iterator {
 
 	//获取表前缀
 	protected function getPrefix() {
-		return $this->db->get( 'prefix' );
+		return c( 'database.prefix' );
 	}
 
 	/**
@@ -67,11 +66,11 @@ class Query implements \ArrayAccess, \Iterator {
 	 */
 	public function table( $table ) {
 		//模型实例时不允许改表名
-		$this->table = $this->table ?: $this->db->get( 'prefix' ) . $table;
+		$this->table = $this->table ?: c( 'database.prefix' ) . $table;
 		//缓存表字段
-		$this->fields = $this->getFields( $table );
+		$this->fields = $this->getFields();
 		//获取表主键
-		$this->primaryKey = $this->getPrimaryKey( $table );
+		$this->primaryKey = $this->getPrimaryKey();
 
 		return $this;
 	}
@@ -123,20 +122,18 @@ class Query implements \ArrayAccess, \Iterator {
 	/**
 	 * 获取表字段信息
 	 *
-	 * @param string $table
-	 *
 	 * @return array|bool|void
 	 */
-	public function getFields( $table ) {
+	public function getFields() {
 		static $cache = [ ];
-		if ( isset( $cache[ $table ] ) ) {
-			return $cache[ $table ];
+		if ( ! c( 'database.debug' ) && isset( $cache[ $this->table ] ) ) {
+			return $cache[ $this->table ];
 		}
-		$name = $this->db->get( 'database' ) . '.' . $table;
 		//缓存字段
+		$name = c( 'database.database' ) . '.' . $this->table;
 		$data = $this->cache( $name );
 		if ( empty( $data ) ) {
-			$sql = "show columns from " . $this->db->get( 'prefix' ) . $table;
+			$sql = "show columns from " . $this->table;
 			if ( ! $result = $this->query( $sql ) ) {
 				return [ ];
 			}
@@ -160,19 +157,14 @@ class Query implements \ArrayAccess, \Iterator {
 	/**
 	 * 获取表主键
 	 *
-	 * @param $table
-	 *
 	 * @return mixed
 	 */
-	public function getPrimaryKey( $table ) {
+	public function getPrimaryKey() {
 		static $cache = [ ];
-		if ( isset( $cache[ $table ] ) ) {
-			return $cache[ $table ];
-		}
-		$fields = $this->getFields( $table );
+		$fields = $this->getFields( $this->table );
 		foreach ( $fields as $v ) {
 			if ( $v['key'] == 1 ) {
-				return $cache[ $table ] = $v['field'];
+				return $cache[ $this->table ] = $v['field'];
 			}
 		}
 	}
@@ -186,11 +178,14 @@ class Query implements \ArrayAccess, \Iterator {
 	 * @return int|null|void
 	 */
 	public function cache( $name, $data = null ) {
-		if ( $this->db->get( 'debug' ) ) {
+		if ( c( 'database.debug' ) ) {
 			return;
 		}
+		//目录检测
+		$dir = c( 'database.cacheDir' );
+		is_dir( $dir ) or mkdir( $dir, 0755, true );
 		//缓存文件
-		$file = $this->db->get( 'cacheDir' ) . '/' . md5( $name ) . '.php';
+		$file = $dir . '/' . md5( $name ) . '.php';
 		//读取数据
 		if ( is_null( $data ) && is_file( $file ) ) {
 			$data = file_get_contents( $file );
