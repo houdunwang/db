@@ -40,7 +40,6 @@ c( 'database', [//读库列表
 ####创建对象
 ```
 $obj = new \houdunwang\db\Db();
-$d   = $obj->query( 'select * from news' );
 ```
 
 
