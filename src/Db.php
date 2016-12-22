@@ -18,39 +18,38 @@ use houdunwang\config\Config;
 class Db {
 	//构造函数
 	public function __construct() {
-		$this->setConfig();
-	}
-
-	/**
-	 * 设置配置项
-	 */
-	protected function setConfig() {
-		$instance = new Config();
-		$config   = $instance->get( 'database' );
-		if ( empty( $config['write'] ) ) {
-			$config['write'][] = $instance->getExtName( 'database', [ 'read', 'write' ] );
-		}
-		if ( empty( $config['read'] ) ) {
-			$config['read'][] = $instance->getExtName( 'database', [ 'read', 'write' ] );
-		}
-		$instance->set( 'database', $config );
 	}
 
 	/**
 	 * 获取数据驱动
 	 * @return Query
 	 */
-	public function connect() {
-		return new Query( $this );
+	public static function connect() {
+		//格式配置项
+		$config = Config::get( 'database' );
+		if ( empty( $config['write'] ) ) {
+			$config['write'][] = Config::getExtName( 'database', [ 'read', 'write' ] );
+		}
+		if ( empty( $config['read'] ) ) {
+			$config['read'][] = Config::getExtName( 'database', [ 'read', 'write' ] );
+		}
+		Config::set( 'database', $config );
+
+		//实例
+		return new Query();
 	}
 
 	/**
-	 * @param $method
-	 * @param $params
+	 * @param string $method 方法
+	 * @param array $params 参数
 	 *
 	 * @return mixed
 	 */
-	public function __call( $method, $params ) {
-		return call_user_func_array( [ $this->connect(), $method ], $params );
+	public static function __callStatic( $method, $params ) {
+		return call_user_func_array( [ self::connect(), $method ], $params );
+	}
+
+	public function __call( $name, $arguments ) {
+		return self::__callStatic( $name, $arguments );
 	}
 }

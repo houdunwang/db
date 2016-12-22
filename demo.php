@@ -1,6 +1,7 @@
 <?php
 require 'vendor/autoload.php';
-c( 'database', [//读库列表
+\houdunwang\config\Config::set( 'database', [
+	//读库列表
 	'read'     => [ ],
 	//写库列表
 	'write'    => [ ],
@@ -24,4 +25,4 @@ c( 'database', [//读库列表
 $obj = new \houdunwang\db\Db();
 $d   = $obj->query( 'select * from news' );
 print_r( $d );
-print_r( $obj->table('news')->find( 1 ) );
+print_r( $obj->table( 'news' )->find( 1 ) );
