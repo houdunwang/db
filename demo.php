@@ -24,7 +24,9 @@ require 'vendor/autoload.php';
 	//表前缀
 	'prefix'      => ''
 ] );
+
 $obj = new \houdunwang\db\Db();
 $d   = $obj->query( 'select * from news' );
 print_r( $d );
+\houdunwang\db\Db::config($config);
 print_r( $obj->table( 'news' )->find( 1 ) );

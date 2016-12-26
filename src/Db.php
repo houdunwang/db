@@ -26,7 +26,7 @@ class Db {
 	}
 
 	//设置配置项
-	public function config( $config ) {
+	public function config( $config, $value = null ) {
 		if ( is_array( $config ) ) {
 			//格式配置项
 			if ( empty( $config['write'] ) ) {
@@ -38,8 +38,12 @@ class Db {
 			$this->config = $config;
 
 			return $this;
-		} else {
+		} else if ( is_null( $value ) ) {
 			return Arr::get( $this->config, $config );
+		} else {
+			$this->config = Arr::set( $this->config, $config, $value );
+
+			return $this;
 		}
 	}
 

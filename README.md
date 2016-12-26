@@ -11,7 +11,7 @@ composer require houdunwang/db
 > HDPHP 框架已经内置此组件，无需要安装
 
 ##开始使用
-####配置
+####设置全局配置
 
 ```
 \houdunwang\config\Config::set( 'database', [
@@ -36,6 +36,17 @@ composer require houdunwang/db
 	//表前缀
 	'prefix'   => ''
 ] );
+```
+
+####重设所有配置
+```
+$config='配置项';//请参考上面的配置项
+Db::config($config);
+```
+
+####设置独立配置
+```
+Db::config('password','admin888');
 ```
 
 #核心操作
