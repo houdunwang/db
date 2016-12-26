@@ -9,6 +9,7 @@
  * '-------------------------------------------------------------------*/
 namespace houdunwang\db;
 
+use houdunwang\arr\Arr;
 use houdunwang\config\Config;
 
 /**
@@ -16,40 +17,48 @@ use houdunwang\config\Config;
  * @package houdunwang\db
  */
 class Db {
-	//构造函数
+	//连接
+	protected $link = null;
+	protected $config;
+
 	public function __construct() {
+		$this->config( Config::get( 'database' ) );
 	}
 
-	/**
-	 * 获取数据驱动
-	 * @return Query
-	 */
-	public static function connect() {
-		//格式配置项
-		$config = Config::get( 'database' );
-		if ( empty( $config['write'] ) ) {
-			$config['write'][] = Config::getExtName( 'database', [ 'read', 'write' ] );
+	//设置配置项
+	public function config( $config ) {
+		if ( is_array( $config ) ) {
+			//格式配置项
+			if ( empty( $config['write'] ) ) {
+				$config['write'][] = Arr::getExtName( $config, [ 'read', 'write' ] );
+			}
+			if ( empty( $config['read'] ) ) {
+				$config['read'][] = Arr::getExtName( $config, [ 'read', 'write' ] );
+			}
+			$this->config = $config;
+
+			return $this;
+		} else {
+			return Arr::get( $this->config, $config );
 		}
-		if ( empty( $config['read'] ) ) {
-			$config['read'][] = Config::getExtName( 'database', [ 'read', 'write' ] );
+	}
+
+	//更改缓存驱动
+	public function driver() {
+		$this->link = new Query( $this );
+
+		return $this;
+	}
+
+	public function __call( $method, $params ) {
+		if ( is_null( $this->link ) ) {
+			$this->driver();
 		}
-		Config::set( 'database', $config );
 
-		//实例
-		return new Query();
+		return call_user_func_array( [ $this->link, $method ], $params );
 	}
 
-	/**
-	 * @param string $method 方法
-	 * @param array $params 参数
-	 *
-	 * @return mixed
-	 */
-	public static function __callStatic( $method, $params ) {
-		return call_user_func_array( [ self::connect(), $method ], $params );
-	}
-
-	public function __call( $name, $arguments ) {
-		return self::__callStatic( $name, $arguments );
+	public static function __callStatic( $name, $arguments ) {
+		return call_user_func_array( [ new static(), $name ], $arguments );
 	}
 }

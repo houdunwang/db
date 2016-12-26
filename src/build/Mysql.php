@@ -39,7 +39,6 @@ class Mysql extends Build {
 	}
 
 	public function insert() {
-
 		return str_replace( [
 			'%table%',
 			'%field%',

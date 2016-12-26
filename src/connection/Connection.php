@@ -21,9 +21,12 @@ trait Connection {
 	protected $affectedRow;
 	//查询语句日志
 	protected static $queryLogs = [ ];
+	//外观类
+	protected $db;
 
 	//初始化
-	public function __construct() {
+	public function __construct( $db ) {
+		$this->db = $db;
 		$this->link();
 	}
 
@@ -36,7 +39,7 @@ trait Connection {
 	 */
 	public function link( $type = true ) {
 		static $links = [ ];
-		$mulConfig    = c( 'database.' . ($type ? 'write' : 'read' ));
+		$mulConfig    = $this->db->config( $type ? 'write' : 'read' );
 		$this->config = $mulConfig[ array_rand( $mulConfig ) ];
 		$name         = serialize( $this->config );
 		if ( isset( $links[ $name ] ) ) {
@@ -73,9 +76,7 @@ trait Connection {
 			$sth->execute();
 			$this->affectedRow = $sth->rowCount();
 			//记录查询日志
-			if ( c( 'database.debug' ) ) {
-				self::$queryLogs[] = $sql . var_export( $params, true );
-			}
+			self::$queryLogs[] = $sql . var_export( $params, true );
 
 			return true;
 		} catch ( Exception $e ) {
@@ -128,9 +129,7 @@ trait Connection {
 			$sth->execute();
 			$this->affectedRow = $sth->rowCount();
 			//记录日志
-			if ( c( 'database.debug' ) ) {
-				self::$queryLogs[] = $sql . var_export( $params, true );
-			}
+			self::$queryLogs[] = $sql . var_export( $params, true );
 
 			return $sth->fetchAll() ?: [ ];
 		} catch ( Exception $e ) {

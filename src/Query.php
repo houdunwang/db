@@ -11,6 +11,7 @@
 
 use Exception;
 use houdunwang\ArrayAccess;
+use houdunwang\dir\Dir;
 use houdunwang\page\Page;
 
 class Query implements \ArrayAccess, \Iterator {
@@ -30,13 +31,14 @@ class Query implements \ArrayAccess, \Iterator {
 	//sql分析实例
 	protected $build;
 
-	public function __construct() {
+	public function __construct( $db ) {
+		$this->db = $db;
 		$this->connection();
 	}
 
 	public function connection() {
-		$class            = '\houdunwang\db\connection\\' . ucfirst( c( 'database.driver' ) );
-		$this->connection = new $class();
+		$class            = '\houdunwang\db\connection\\' . ucfirst( $this->db->config( 'driver' ) );
+		$this->connection = new $class( $this->db );
 	}
 
 	/**
@@ -45,8 +47,8 @@ class Query implements \ArrayAccess, \Iterator {
 	 */
 	public function build() {
 		if ( ! $this->build ) {
-			$driver      = 'houdunwang\db\build\\' . ucfirst( c( 'database.driver' ) );
-			$this->build = new $driver( $this->getTable() );
+			$driver      = 'houdunwang\db\build\\' . ucfirst( $this->db->config( 'driver' ) );
+			$this->build = new $driver( $this, $this->db );
 		}
 
 		return $this->build;
@@ -54,7 +56,7 @@ class Query implements \ArrayAccess, \Iterator {
 
 	//获取表前缀
 	protected function getPrefix() {
-		return c( 'database.prefix' );
+		return $this->db->config( 'prefix' );
 	}
 
 	/**
@@ -66,7 +68,7 @@ class Query implements \ArrayAccess, \Iterator {
 	 */
 	public function table( $table ) {
 		//模型实例时不允许改表名
-		$this->table = $this->table ?: c( 'database.prefix' ) . $table;
+		$this->table = $this->table ?: $this->db->config( 'prefix' ) . $table;
 		//缓存表字段
 		$this->fields = $this->getFields();
 		//获取表主键
@@ -82,22 +84,6 @@ class Query implements \ArrayAccess, \Iterator {
 	public function getTable() {
 		return $this->table;
 	}
-
-//	/**
-//	 * 获取表字段
-//	 * @return array|bool
-//	 */
-//	public function getFields() {
-//		return $this->fields;
-//	}
-
-//	/**
-//	 * 获取表主键
-//	 * @return mixed
-//	 */
-//	public function getPrimaryKey() {
-//		return $this->primaryKey;
-//	}
 
 	/**
 	 * 移除表中不存在的字段
@@ -126,11 +112,11 @@ class Query implements \ArrayAccess, \Iterator {
 	 */
 	public function getFields() {
 		static $cache = [ ];
-		if ( ! c( 'database.debug' ) && isset( $cache[ $this->table ] ) ) {
+		if ( $this->db->config( 'cache_field' ) && isset( $cache[ $this->table ] ) ) {
 			return $cache[ $this->table ];
 		}
 		//缓存字段
-		$name = c( 'database.database' ) . '.' . $this->table;
+		$name = $this->db->config( 'database' ) . '.' . $this->table;
 		$data = $this->cache( $name );
 		if ( empty( $data ) ) {
 			$sql = "show columns from " . $this->table;
@@ -178,12 +164,12 @@ class Query implements \ArrayAccess, \Iterator {
 	 * @return int|null|void
 	 */
 	public function cache( $name, $data = null ) {
-		if ( c( 'database.debug' ) ) {
+		if ( ! $this->db->config( 'cache_field' ) ) {
 			return;
 		}
 		//目录检测
-		$dir = c( 'database.cacheDir' );
-		is_dir( $dir ) or mkdir( $dir, 0755, true );
+		$dir = $this->db->config( 'cache_dir' );
+		Dir::create( $dir );
 		//缓存文件
 		$file = $dir . '/' . md5( $name ) . '.php';
 		//读取数据
@@ -232,19 +218,6 @@ class Query implements \ArrayAccess, \Iterator {
 	}
 
 	/**
-	 * 获取分页对象
-	 * @return Page|null
-	 */
-	protected function page() {
-		static $page = null;
-		if ( is_null( $page ) ) {
-			$page = new Page();
-		}
-
-		return $page;
-	}
-
-	/**
 	 * 分页查询
 	 *
 	 * @param $row 每页显示数量
@@ -254,7 +227,7 @@ class Query implements \ArrayAccess, \Iterator {
 	 */
 	public function paginate( $row, $pageNum = 8 ) {
 		$obj = unserialize( serialize( $this ) );
-		$this->page()->row( $row )->pageNum( $pageNum )->make( $obj->count() );
+		Page::row( $row )->pageNum( $pageNum )->make( $obj->count() );
 		$res     = $this->limit( \Page::limit() )->get();
 		$collect = Collection::make( [ ] );
 		if ( $res ) {
@@ -269,7 +242,7 @@ class Query implements \ArrayAccess, \Iterator {
 	 * @return mixed
 	 */
 	public function links() {
-		return $this->page()->show();
+		return Page::show();
 	}
 
 	/**
@@ -464,7 +437,7 @@ class Query implements \ArrayAccess, \Iterator {
 
 	/**
 	 * 查找一条数据
-	 * @return \hdphp\db\Query
+	 * @return array
 	 */
 	public function first() {
 		if ( $data = $this->query( $this->build()->select(), $this->build()->getSelectParams() ) ) {
@@ -554,7 +527,7 @@ class Query implements \ArrayAccess, \Iterator {
 
 	/**
 	 * 分组查询
-	 * @return \hdphp\db\connection\DbInterface
+	 * @return $this
 	 */
 	public function groupBy() {
 		$this->build()->bindExpression( 'groupBy', func_get_arg( 0 ) );

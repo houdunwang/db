@@ -11,9 +11,9 @@ namespace houdunwang\db\connection;
 
 class Mysql implements DbInterface {
 	use Connection;
-
 	/**
 	 * pdo连接
+	 *
 	 * @return string
 	 */
 	public function getDns() {

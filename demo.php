@@ -1,26 +1,28 @@
 <?php
 require 'vendor/autoload.php';
 \houdunwang\config\Config::set( 'database', [
-	//读库列表
-	'read'     => [ ],
-	//写库列表
-	'write'    => [ ],
+	//缓存表字段
+	'cache_field' => true,
 	//表字段缓存目录
-	'cacheDir' => 'storage/field',
+	'cache_dir'    => 'storage/field',
+	//读库列表
+	'read'        => [ ],
+	//写库列表
+	'write'       => [ ],
 	//开启读写分离
-	'proxy'    => false,
+	'proxy'       => false,
 	//主机
-	'host'     => 'localhost',
+	'host'        => 'localhost',
 	//类型
-	'driver'   => 'mysql',
+	'driver'      => 'mysql',
 	//帐号
-	'user'     => 'root',
+	'user'        => 'root',
 	//密码
-	'password' => 'admin888',
+	'password'    => 'admin888',
 	//数据库
-	'database' => 'demo',
+	'database'    => 'demo',
 	//表前缀
-	'prefix'   => ''
+	'prefix'      => ''
 ] );
 $obj = new \houdunwang\db\Db();
 $d   = $obj->query( 'select * from news' );

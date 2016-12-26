@@ -18,8 +18,10 @@
  * DELETE FROM %table% USING  %using% WHERE %where%
  */
 abstract class Build {
-	//表名
-	protected $table;
+	//查询实例
+	protected $query;
+	//外观类
+	protected $db;
 	//查询参数
 	protected $params = [ ];
 
@@ -33,8 +35,9 @@ abstract class Build {
 
 	abstract public function delete();
 
-	public function __construct( $table ) {
-		$this->table = $table;
+	public function __construct( $query, $db ) {
+		$this->query = $query;
+		$this->db    = $db;
 	}
 
 
@@ -113,7 +116,7 @@ abstract class Build {
 	}
 
 	protected function parseTable() {
-		return $this->table;
+		return $this->query->getTable();
 	}
 
 	protected function parseField() {
@@ -133,7 +136,7 @@ abstract class Build {
 
 	public function parseJoin() {
 		$expression = $this->getBindExpression( 'join' );
-		$as         = preg_replace( "/^" . c( 'database.prefix' ) . "/", '', $this->parseTable() );
+		$as         = preg_replace( "/^" . $this->db->config( 'prefix' ) . "/", '', $this->parseTable() );
 
 		return $expression ? $as . implode( ' ', $expression ) : '';
 	}
