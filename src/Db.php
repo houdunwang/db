@@ -48,7 +48,7 @@ class Db {
 	}
 
 	//更改缓存驱动
-	public function driver() {
+	protected function driver() {
 		$this->link = new Query( $this );
 
 		return $this;
