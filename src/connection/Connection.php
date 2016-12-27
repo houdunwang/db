@@ -21,12 +21,12 @@ trait Connection {
 	protected $affectedRow;
 	//查询语句日志
 	protected static $queryLogs = [ ];
-	//外观类
-	protected $db;
+	//查询实例
+	protected $query;
 
 	//初始化
-	public function __construct( $db ) {
-		$this->db = $db;
+	public function __construct( $query ) {
+		$this->query = $query;
 		$this->link();
 	}
 
@@ -39,7 +39,7 @@ trait Connection {
 	 */
 	public function link( $type = true ) {
 		static $links = [ ];
-		$mulConfig    = $this->db->config( $type ? 'write' : 'read' );
+		$mulConfig    = $this->query->config( $type ? 'write' : 'read' );
 		$this->config = $mulConfig[ array_rand( $mulConfig ) ];
 		$name         = serialize( $this->config );
 		if ( isset( $links[ $name ] ) ) {

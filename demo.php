@@ -1,10 +1,10 @@
 <?php
 require 'vendor/autoload.php';
-\houdunwang\config\Config::set( 'database', [
+$config = [
 	//缓存表字段
 	'cache_field' => true,
 	//表字段缓存目录
-	'cache_dir'    => 'storage/field',
+	'cache_dir'   => 'storage/field',
 	//读库列表
 	'read'        => [ ],
 	//写库列表
@@ -23,10 +23,11 @@ require 'vendor/autoload.php';
 	'database'    => 'demo',
 	//表前缀
 	'prefix'      => ''
-] );
+];
+\houdunwang\config\Config::set( 'database', $config );
 
 $obj = new \houdunwang\db\Db();
 $d   = $obj->query( 'select * from news' );
 print_r( $d );
-\houdunwang\db\Db::config($config);
-print_r( $obj->table( 'news' )->find( 1 ) );
+//\houdunwang\db\Db::config( $config );
+//print_r( $obj->table( 'news' )->find( 1 ) );

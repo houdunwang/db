@@ -10,14 +10,13 @@
  * '-------------------------------------------------------------------*/
 
 use Exception;
+use houdunwang\arr\Arr;
 use houdunwang\ArrayAccess;
+use houdunwang\config\Config;
 use houdunwang\dir\Dir;
 use houdunwang\page\Page;
 
-class Query implements \ArrayAccess, \Iterator {
-	use \houdunwang\db\ArrayAccess;
-	//数据库操作外观类
-	protected $db;
+class Query {
 	//数据
 	protected $data = [ ];
 	//表名
@@ -30,25 +29,54 @@ class Query implements \ArrayAccess, \Iterator {
 	protected $connection;
 	//sql分析实例
 	protected $build;
+	//配置
+	protected $config;
 
-	public function __construct( $db ) {
-		$this->db = $db;
-		$this->connection();
+	public function __construct() {
+		$this->config( Config::get( 'database' ) );
 	}
 
-	public function connection() {
-		$class            = '\houdunwang\db\connection\\' . ucfirst( $this->db->config( 'driver' ) );
-		$this->connection = new $class( $this->db );
+	//设置配置项
+	public function config( $config, $value = null ) {
+		if ( is_array( $config ) ) {
+			//格式配置项
+			if ( empty( $config['write'] ) ) {
+				$config['write'][] = Arr::getExtName( $config, [ 'read', 'write' ] );
+			}
+			if ( empty( $config['read'] ) ) {
+				$config['read'][] = Arr::getExtName( $config, [ 'read', 'write' ] );
+			}
+			$this->config = $config;
+		} else if ( is_null( $value ) ) {
+			return Arr::get( $this->config, $config );
+		} else {
+			$this->config = Arr::set( $this->config, $config, $value );
+		}
+		//根据驱动类型设置数据库操作连接对象
+		$this->connection();
+
+		return $this;
 	}
 
 	/**
-	 * 设置操作驱动
+	 * 根据驱动创建数据库连接对象
+	 * @return $this
+	 */
+	public function connection() {
+		$class            = '\houdunwang\db\connection\\' . ucfirst( $this->config( 'driver' ) );
+		$this->connection = new $class( $this );
+
+		return $this;
+	}
+
+	/**
+	 * SQL编译引擎
 	 * @return mixed
 	 */
 	public function build() {
 		if ( ! $this->build ) {
-			$driver      = 'houdunwang\db\build\\' . ucfirst( $this->db->config( 'driver' ) );
-			$this->build = new $driver( $this, $this->db );
+			$driver      = 'houdunwang\db\build\\' . ucfirst( $this->config( 'driver' ) );
+			$this->build = new $driver( $this );
 		}
 
 		return $this->build;
@@ -56,7 +84,7 @@ class Query implements \ArrayAccess, \Iterator {
 
 	//获取表前缀
 	protected function getPrefix() {
-		return $this->db->config( 'prefix' );
+		return $this->config( 'prefix' );
 	}
 
 	/**
@@ -76,7 +104,7 @@ class Query implements \ArrayAccess, \Iterator {
 	 */
 	public function table( $table, $full = false ) {
 		//模型实例时不允许改表名
-		$this->table = $this->table ?: ( $full ? $table : $this->db->config( 'prefix' ) . $table );
+		$this->table = $this->table ?: ( $full ? $table : $this->config( 'prefix' ) . $table );
 		//缓存表字段
 		$this->fields = $this->getFields();
 		//获取表主键
@@ -120,11 +148,11 @@ class Query implements \ArrayAccess, \Iterator {
 	 */
 	public function getFields() {
 		static $cache = [ ];
-		if ( $this->db->config( 'cache_field' ) && isset( $cache[ $this->table ] ) ) {
+		if ( $this->config( 'cache_field' ) && isset( $cache[ $this->table ] ) ) {
 			return $cache[ $this->table ];
 		}
 		//缓存字段
-		$name = $this->db->config( 'database' ) . '.' . $this->table;
+		$name = $this->config( 'database' ) . '.' . $this->table;
 		$data = $this->cache( $name );
 		if ( empty( $data ) ) {
 			$sql = "show columns from " . $this->table;
@@ -172,11 +200,11 @@ class Query implements \ArrayAccess, \Iterator {
 	 * @return int|null|void
 	 */
 	public function cache( $name, $data = null ) {
-		if ( ! $this->db->config( 'cache_field' ) ) {
+		if ( ! $this->config( 'cache_field' ) ) {
 			return;
 		}
 		//目录检测
-		$dir = $this->db->config( 'cache_dir' );
+		$dir = $this->config( 'cache_dir' );
 		Dir::create( $dir );
 		//缓存文件
 		$file = $dir . '/' . md5( $name ) . '.php';

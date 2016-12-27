@@ -19,37 +19,14 @@ use houdunwang\config\Config;
 class Db {
 	//连接
 	protected $link = null;
-	protected $config;
 
 	public function __construct() {
-		$this->config( Config::get( 'database' ) );
-	}
 
-	//设置配置项
-	public function config( $config, $value = null ) {
-		if ( is_array( $config ) ) {
-			//格式配置项
-			if ( empty( $config['write'] ) ) {
-				$config['write'][] = Arr::getExtName( $config, [ 'read', 'write' ] );
-			}
-			if ( empty( $config['read'] ) ) {
-				$config['read'][] = Arr::getExtName( $config, [ 'read', 'write' ] );
-			}
-			$this->config = $config;
-
-			return $this;
-		} else if ( is_null( $value ) ) {
-			return Arr::get( $this->config, $config );
-		} else {
-			$this->config = Arr::set( $this->config, $config, $value );
-
-			return $this;
-		}
 	}
 
 	//更改缓存驱动
 	protected function driver() {
-		$this->link = new Query( $this );
+		$this->link = new Query();
 
 		return $this;
 	}

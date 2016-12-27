@@ -20,8 +20,6 @@
 abstract class Build {
 	//查询实例
 	protected $query;
-	//外观类
-	protected $db;
 	//查询参数
 	protected $params = [ ];
 
@@ -35,9 +33,8 @@ abstract class Build {
 
 	abstract public function delete();
 
-	public function __construct( $query, $db ) {
-		$this->query = $query;
-		$this->db    = $db;
+	public function __construct( $query ) {
+		$this->query  = $query;
 	}
 
 
@@ -136,7 +133,7 @@ abstract class Build {
 
 	public function parseJoin() {
 		$expression = $this->getBindExpression( 'join' );
-		$as         = preg_replace( "/^" . $this->db->config( 'prefix' ) . "/", '', $this->parseTable() );
+		$as         = preg_replace( "/^" . $this->query->config( 'prefix' ) . "/", '', $this->parseTable() );
 
 		return $expression ? $as . implode( ' ', $expression ) : '';
 	}
