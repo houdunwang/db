@@ -66,9 +66,17 @@ class Query implements \ArrayAccess, \Iterator {
 	 *
 	 * @return $this
 	 */
-	public function table( $table ) {
+	/**
+	 * 设置表
+	 *
+	 * @param string $table 表名
+	 * @param bool $full 完整表包(含前缀)
+	 *
+	 * @return $this
+	 */
+	public function table( $table, $full = false ) {
 		//模型实例时不允许改表名
-		$this->table = $this->table ?: $this->db->config( 'prefix' ) . $table;
+		$this->table = $this->table ?: ( $full ? $table : $this->db->config( 'prefix' ) . $table );
 		//缓存表字段
 		$this->fields = $this->getFields();
 		//获取表主键
