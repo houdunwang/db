@@ -32,10 +32,6 @@ class Query {
 	//配置
 	protected $config;
 
-	public function __construct() {
-		$this->config( Config::get( 'database' ) );
-	}
-
 	//设置配置项
 	public function config( $config, $value = null ) {
 		if ( is_array( $config ) ) {

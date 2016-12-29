@@ -20,13 +20,10 @@ class Db {
 	//连接
 	protected $link = null;
 
-	public function __construct() {
-
-	}
-
 	//更改缓存驱动
 	protected function driver() {
 		$this->link = new Query();
+		$this->link->config( Config::get( 'database' ) );
 
 		return $this;
 	}

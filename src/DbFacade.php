@@ -9,9 +9,9 @@
  * '-------------------------------------------------------------------*/
 namespace houdunwang\db;
 
-use hdphp\kernel\ServiceFacade;
+use houdunwang\framework\build\Facade;
 
-class DbFacade extends ServiceFacade {
+class DbFacade extends Facade {
 	public static function getFacadeAccessor() {
 		return 'Db';
 	}
