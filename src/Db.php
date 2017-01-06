@@ -18,12 +18,13 @@ use houdunwang\config\Config;
  */
 class Db {
 	//连接
-	protected $link = null;
+	protected $link;
 
 	//更改缓存驱动
 	protected function driver() {
 		$this->link = new Query();
 		$this->link->config( Config::get( 'database' ) );
+		$this->link->connection();
 
 		return $this;
 	}

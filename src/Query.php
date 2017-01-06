@@ -48,8 +48,6 @@ class Query {
 		} else {
 			$this->config = Arr::set( $this->config, $config, $value );
 		}
-		//根据驱动类型设置数据库操作连接对象
-		$this->connection();
 
 		return $this;
 	}
@@ -59,23 +57,16 @@ class Query {
 	 * @return $this
 	 */
 	public function connection() {
-		$class            = '\houdunwang\db\connection\\' . ucfirst( $this->config( 'driver' ) );
+		$driver = ucfirst( $this->config( 'driver' ) );
+		//SQL数据库连接引擎
+		$class            = '\houdunwang\db\connection\\' . $driver;
 		$this->connection = new $class( $this );
 
+		//SQL语句编译引擎
+		$driver      = 'houdunwang\db\build\\' . $driver;
+		$this->build = new $driver( $this );
+
 		return $this;
-	}
-
-	/**
-	 * SQL编译引擎
-	 * @return mixed
-	 */
-	public function build() {
-		if ( ! $this->build ) {
-			$driver      = 'houdunwang\db\build\\' . ucfirst( $this->config( 'driver' ) );
-			$this->build = new $driver( $this );
-		}
-
-		return $this->build;
 	}
 
 	//获取表前缀
@@ -83,13 +74,6 @@ class Query {
 		return $this->config( 'prefix' );
 	}
 
-	/**
-	 * 设置表
-	 *
-	 * @param $table
-	 *
-	 * @return $this
-	 */
 	/**
 	 * 设置表
 	 *
@@ -152,7 +136,7 @@ class Query {
 		$data = $this->cache( $name );
 		if ( empty( $data ) ) {
 			$sql = "show columns from " . $this->table;
-			if ( ! $result = $this->query( $sql ) ) {
+			if ( ! $result = $this->connection->query( $sql ) ) {
 				return [ ];
 			}
 			$data = [ ];
@@ -287,7 +271,7 @@ class Query {
 	 */
 	public function execute( $sql, array $params = [ ] ) {
 		$result = $this->connection->execute( $sql, $params );
-		$this->build()->reset();
+		$this->build->reset();
 
 		return $result;
 	}
@@ -302,7 +286,7 @@ class Query {
 	 */
 	public function query( $sql, array $params = [ ] ) {
 		$data = $this->connection->query( $sql, $params );
-		$this->build()->reset();
+		$this->build->reset();
 
 		return $data;
 	}
@@ -317,13 +301,13 @@ class Query {
 	 * @throws \Exception
 	 */
 	public function increment( $field, $dec = 1 ) {
-		$where = $this->build()->parseWhere();
+		$where = $this->build->parseWhere();
 		if ( empty( $where ) ) {
 			throw new Exception( '缺少更新条件' );
 		}
 		$sql = "UPDATE " . $this->getTable() . " SET {$field}={$field}+$dec " . $where;
 
-		return $this->execute( $sql, $this->build()->getUpdateParams() );
+		return $this->execute( $sql, $this->build->getUpdateParams() );
 	}
 
 	/**
@@ -336,14 +320,14 @@ class Query {
 	 * @throws \Exception
 	 */
 	public function decrement( $field, $dec = 1 ) {
-		$where = $this->build()->parseWhere();
+		$where = $this->build->parseWhere();
 		if ( empty( $where ) ) {
 			throw new Exception( '缺少更新条件' );
 		}
 
 		$sql = "UPDATE " . $this->getTable() . " SET {$field}={$field}-$dec " . $where;
 
-		return $this->execute( $sql, $this->build()->getUpdateParams() );
+		return $this->execute( $sql, $this->build->getUpdateParams() );
 	}
 
 	/**
@@ -361,10 +345,10 @@ class Query {
 			throw new Exception( '缺少更新数据' );
 		}
 		foreach ( (array) $data as $k => $v ) {
-			$this->build()->bindExpression( 'set', $k );
-			$this->build()->bindParams( 'values', $v );
+			$this->build->bindExpression( 'set', $k );
+			$this->build->bindParams( 'values', $v );
 		}
-		if ( ! $this->build()->getBindExpression( 'where' ) ) {
+		if ( ! $this->build->getBindExpression( 'where' ) ) {
 			//有主键时使用主键做条件
 			$pri = $this->getPrimaryKey();
 			if ( isset( $data[ $pri ] ) ) {
@@ -372,8 +356,8 @@ class Query {
 			}
 		}
 		//必须有条件才可以更新
-		if ( $this->build()->getBindExpression( 'where' ) ) {
-			return $this->execute( $this->build()->update(), $this->build()->getUpdateParams() );
+		if ( $this->build->getBindExpression( 'where' ) ) {
+			return $this->execute( $this->build->update(), $this->build->getUpdateParams() );
 		}
 
 		return false;
@@ -392,8 +376,8 @@ class Query {
 			$this->whereIn( $this->getPrimaryKey(), is_array( $id ) ? $id : explode( ',', $id ) );
 		}
 		//必须有条件才可以删除
-		if ( $this->build()->getBindExpression( 'where' ) ) {
-			return $this->execute( $this->build()->delete(), $this->build()->getDeleteParams() );
+		if ( $this->build->getBindExpression( 'where' ) ) {
+			return $this->execute( $this->build->delete(), $this->build->getDeleteParams() );
 		}
 
 		return false;
@@ -432,12 +416,12 @@ class Query {
 		}
 
 		foreach ( $data as $k => $v ) {
-			$this->build()->bindExpression( 'field', "`$k`" );
-			$this->build()->bindExpression( 'values', '?' );
-			$this->build()->bindParams( 'values', $v );
+			$this->build->bindExpression( 'field', "`$k`" );
+			$this->build->bindExpression( 'values', '?' );
+			$this->build->bindParams( 'values', $v );
 		}
 
-		return $this->execute( $this->build()->$action(), $this->build()->getInsertParams() );
+		return $this->execute( $this->build->$action(), $this->build->getInsertParams() );
 	}
 
 	/**
@@ -461,7 +445,7 @@ class Query {
 	public function find( $id ) {
 		if ( $id ) {
 			$this->where( $this->getPrimaryKey(), $id );
-			if ( $data = $this->query( $this->build()->select(), $this->build()->getSelectParams() ) ) {
+			if ( $data = $this->query( $this->build->select(), $this->build->getSelectParams() ) ) {
 				return $data ? $data[0] : [ ];
 			}
 		}
@@ -472,7 +456,7 @@ class Query {
 	 * @return array
 	 */
 	public function first() {
-		if ( $data = $this->query( $this->build()->select(), $this->build()->getSelectParams() ) ) {
+		if ( $data = $this->query( $this->build->select(), $this->build->getSelectParams() ) ) {
 			return $res = $data ? $data[0] : [ ];
 		}
 	}
@@ -485,7 +469,7 @@ class Query {
 	 * @return mixed
 	 */
 	public function pluck( $field ) {
-		$data   = $this->query( $this->build()->select(), $this->build()->getSelectParams() );
+		$data   = $this->query( $this->build->select(), $this->build->getSelectParams() );
 		$result = $data ? $data[0] : [ ];
 		if ( ! empty( $result ) ) {
 			return $result[ $field ];
@@ -504,7 +488,7 @@ class Query {
 			$this->field( $field );
 		}
 
-		return $this->query( $this->build()->select(), $this->build()->getSelectParams() );
+		return $this->query( $this->build->select(), $this->build->getSelectParams() );
 	}
 
 	/**
@@ -515,7 +499,7 @@ class Query {
 	 * @return array|mixed
 	 */
 	public function lists( $field ) {
-		$result = $this->query( $this->build()->select(), $this->build()->getSelectParams() );
+		$result = $this->query( $this->build->select(), $this->build->getSelectParams() );
 		if ( $result ) {
 			$data  = [ ];
 			$field = explode( ',', $field );
@@ -544,14 +528,14 @@ class Query {
 	/**
 	 * 设置结果集字段
 	 *
-	 * @param $field
+	 * @param string|array $field 字段列表
 	 *
-	 * @return \hdphp\db\connection\DbInterface
+	 * @return $this
 	 */
 	public function field( $field ) {
 		$field = is_array( $field ) ? $field : explode( ',', $field );
 		foreach ( (array) $field as $k => $v ) {
-			$this->build()->bindExpression( 'field', $v );
+			$this->build->bindExpression( 'field', $v );
 		}
 
 		return $this;
@@ -562,63 +546,63 @@ class Query {
 	 * @return $this
 	 */
 	public function groupBy() {
-		$this->build()->bindExpression( 'groupBy', func_get_arg( 0 ) );
+		$this->build->bindExpression( 'groupBy', func_get_arg( 0 ) );
 
 		return $this;
 	}
 
 	public function having() {
 		$args = func_get_args();
-		$this->build()->bindExpression( 'having', $args[0] . $args[1] . ' ? ' );
-		$this->build()->bindParams( 'having', $args[2] );
+		$this->build->bindExpression( 'having', $args[0] . $args[1] . ' ? ' );
+		$this->build->bindParams( 'having', $args[2] );
 
 		return $this;
 	}
 
 	public function orderBy() {
 		$args = func_get_args();
-		$this->build()->bindExpression( 'orderBy', $args[0] . " " . ( empty( $args[1] ) ? ' ASC ' : " $args[1]" ) );
+		$this->build->bindExpression( 'orderBy', $args[0] . " " . ( empty( $args[1] ) ? ' ASC ' : " $args[1]" ) );
 
 		return $this;
 	}
 
 	public function limit() {
 		$args = func_get_args();
-		$this->build()->bindExpression( 'limit', $args[0] . " " . ( empty( $args[1] ) ? '' : ",{$args[1]}" ) );
+		$this->build->bindExpression( 'limit', $args[0] . " " . ( empty( $args[1] ) ? '' : ",{$args[1]}" ) );
 
 		return $this;
 	}
 
 	public function count( $field = '*' ) {
-		$this->build()->bindExpression( 'field', "count($field) AS m" );
+		$this->build->bindExpression( 'field', "count($field) AS m" );
 		$data = $this->first();
 
 		return $data ? $data['m'] : '';
 	}
 
 	public function max( $field ) {
-		$this->build()->bindExpression( 'field', "max({$field}) AS m" );
+		$this->build->bindExpression( 'field', "max({$field}) AS m" );
 		$data = $this->first();
 
 		return $data ? $data['m'] : '';
 	}
 
 	public function min( $field ) {
-		$this->build()->bindExpression( 'field', "min({$field}) AS m" );
+		$this->build->bindExpression( 'field', "min({$field}) AS m" );
 		$data = $this->first();
 
 		return $data ? $data['m'] : '';
 	}
 
 	public function avg( $field ) {
-		$this->build()->bindExpression( 'field', "avg({$field}) AS m" );
+		$this->build->bindExpression( 'field', "avg({$field}) AS m" );
 		$data = $this->first();
 
 		return $data ? $data['m'] : '';
 	}
 
 	public function sum( $field ) {
-		$this->build()->bindExpression( 'field', "sum({$field}) AS m" );
+		$this->build->bindExpression( 'field', "sum({$field}) AS m" );
 		$data = $this->first();
 
 		return $data ? $data['m'] : '';
@@ -626,12 +610,12 @@ class Query {
 
 	public function logic( $login ) {
 		//如果上一次设置了and或or语句时忽略
-		$expression = $this->build()->getBindExpression( 'where' );
+		$expression = $this->build->getBindExpression( 'where' );
 		if ( empty( $expression ) || preg_match( '/^\s*(OR|AND)\s*$/i', array_pop( $expression ) ) ) {
 			return false;
 		}
 
-		$this->build()->bindExpression( 'where', trim( $login ) );
+		$this->build->bindExpression( 'where', trim( $login ) );
 
 		return $this;
 	}
@@ -641,15 +625,15 @@ class Query {
 		$args = func_get_args();
 		switch ( count( $args ) ) {
 			case 1:
-				$this->build()->bindExpression( 'where', $args[0] );
+				$this->build->bindExpression( 'where', $args[0] );
 				break;
 			case 2:
-				$this->build()->bindExpression( 'where', "{$args[0]} = ?" );
-				$this->build()->bindParams( 'where', $args[1] );
+				$this->build->bindExpression( 'where', "{$args[0]} = ?" );
+				$this->build->bindParams( 'where', $args[1] );
 				break;
 			case 3:
-				$this->build()->bindExpression( 'where', "{$args[0]} {$args[1]} ?" );
-				$this->build()->bindParams( 'where', $args[2] );
+				$this->build->bindExpression( 'where', "{$args[0]} {$args[1]} ?" );
+				$this->build->bindParams( 'where', $args[2] );
 				break;
 		}
 
@@ -659,9 +643,9 @@ class Query {
 	//预准备whereRaw
 	public function whereRaw( $sql, array $params = [ ] ) {
 		$this->logic( 'AND' );
-		$this->build()->bindExpression( 'where', $sql );
+		$this->build->bindExpression( 'where', $sql );
 		foreach ( $params as $p ) {
-			$this->build()->bindParams( 'where', $p );
+			$this->build->bindParams( 'where', $p );
 		}
 
 		return $this;
@@ -675,7 +659,7 @@ class Query {
 	}
 
 	public function andWhere() {
-		$this->build()->bindExpression( 'where', ' AND ' );
+		$this->build->bindExpression( 'where', ' AND ' );
 		call_user_func_array( [ $this, 'where' ], func_get_args() );
 
 		return $this;
@@ -683,14 +667,14 @@ class Query {
 
 	public function whereNull( $field ) {
 		$this->logic( 'AND' );
-		$this->build()->bindExpression( 'where', "$field IS NULL" );
+		$this->build->bindExpression( 'where', "$field IS NULL" );
 
 		return $this;
 	}
 
 	public function whereNotNull( $field ) {
 		$this->logic( 'AND' );
-		$this->build()->bindExpression( 'where', "$field IS NOT NULL" );
+		$this->build->bindExpression( 'where', "$field IS NOT NULL" );
 
 		return $this;
 	}
@@ -703,9 +687,9 @@ class Query {
 		$where = '';
 		foreach ( $params as $value ) {
 			$where .= '?,';
-			$this->build()->bindParams( 'where', $value );
+			$this->build->bindParams( 'where', $value );
 		}
-		$this->build()->bindExpression( 'where', " $field IN (" . substr( $where, 0, - 1 ) . ")" );
+		$this->build->bindExpression( 'where', " $field IN (" . substr( $where, 0, - 1 ) . ")" );
 
 		return $this;
 	}
@@ -718,9 +702,9 @@ class Query {
 		$where = '';
 		foreach ( $params as $value ) {
 			$where .= '?,';
-			$this->build()->bindParams( 'where', $value );
+			$this->build->bindParams( 'where', $value );
 		}
-		$this->build()->bindExpression( 'where', " $field NOT IN (" . substr( $where, 0, - 1 ) . ")" );
+		$this->build->bindExpression( 'where', " $field NOT IN (" . substr( $where, 0, - 1 ) . ")" );
 
 		return $this;
 	}
@@ -730,9 +714,9 @@ class Query {
 			throw  new Exception( 'whereIn 参数错误' );
 		}
 		$this->logic( 'AND' );
-		$this->build()->bindExpression( 'where', " $field BETWEEN  ? AND ? " );
-		$this->build()->bindParams( 'where', $params[0] );
-		$this->build()->bindParams( 'where', $params[1] );
+		$this->build->bindExpression( 'where', " $field BETWEEN  ? AND ? " );
+		$this->build->bindParams( 'where', $params[0] );
+		$this->build->bindParams( 'where', $params[1] );
 
 		return $this;
 	}
@@ -742,9 +726,9 @@ class Query {
 			throw  new Exception( 'whereIn 参数错误' );
 		}
 		$this->logic( 'AND' );
-		$this->build()->bindExpression( 'where', " $field NOT BETWEEN  ? AND ? " );
-		$this->build()->bindParams( 'where', $params[0] );
-		$this->build()->bindParams( 'where', $params[1] );
+		$this->build->bindExpression( 'where', " $field NOT BETWEEN  ? AND ? " );
+		$this->build->bindParams( 'where', $params[0] );
+		$this->build->bindParams( 'where', $params[1] );
 
 		return $this;
 	}
@@ -755,7 +739,7 @@ class Query {
 	 */
 	public function join() {
 		$args = func_get_args();
-		$this->build()->bindExpression( 'join', " INNER JOIN " . $this->getPrefix() . "{$args[0]} {$args[0]} ON {$args[1]} {$args[2]} {$args[3]}" );
+		$this->build->bindExpression( 'join', " INNER JOIN " . $this->getPrefix() . "{$args[0]} {$args[0]} ON {$args[1]} {$args[2]} {$args[3]}" );
 
 		return $this;
 	}
@@ -766,7 +750,7 @@ class Query {
 	 */
 	public function leftJoin() {
 		$args = func_get_args();
-		$this->build()->bindExpression( 'join', " LEFT JOIN " . $this->getPrefix() . "{$args[0]} {$args[0]} ON {$args[1]} {$args[2]} {$args[3]}" );
+		$this->build->bindExpression( 'join', " LEFT JOIN " . $this->getPrefix() . "{$args[0]} {$args[0]} ON {$args[1]} {$args[2]} {$args[3]}" );
 
 		return $this;
 	}
@@ -777,7 +761,7 @@ class Query {
 	 */
 	public function rightJoin() {
 		$args = func_get_args();
-		$this->build()->bindExpression( 'join', " RIGHT JOIN " . $this->getPrefix() . "{$args[0]} {$args[0]} ON {$args[1]} {$args[2]} {$args[3]}" );
+		$this->build->bindExpression( 'join', " RIGHT JOIN " . $this->getPrefix() . "{$args[0]} {$args[0]} ON {$args[1]} {$args[2]} {$args[3]}" );
 
 		return $this;
 	}
@@ -809,7 +793,7 @@ class Query {
 	 * @return mixed
 	 */
 	public function getQueryParams( $type ) {
-		return $this->build()->getBindExpression( $type );
+		return $this->build->getBindExpression( $type );
 	}
 
 }

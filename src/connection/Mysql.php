@@ -11,6 +11,7 @@ namespace houdunwang\db\connection;
 
 class Mysql implements DbInterface {
 	use Connection;
+
 	/**
 	 * pdo连接
 	 *
