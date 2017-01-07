@@ -12,11 +12,11 @@
 use Exception;
 use houdunwang\arr\Arr;
 use houdunwang\ArrayAccess;
-use houdunwang\config\Config;
 use houdunwang\dir\Dir;
 use houdunwang\page\Page;
 
-class Query {
+class Query implements \ArrayAccess, \Iterator {
+	use ArrayAccessIterator;
 	//数据
 	protected $data = [ ];
 	//表名
@@ -244,13 +244,10 @@ class Query {
 	public function paginate( $row, $pageNum = 8 ) {
 		$obj = unserialize( serialize( $this ) );
 		Page::row( $row )->pageNum( $pageNum )->make( $obj->count() );
-		$res     = $this->limit( \Page::limit() )->get();
-		$collect = Collection::make( [ ] );
-		if ( $res ) {
-			return $collect->make( $res );
-		}
+		$res = $this->limit( Page::limit() )->get();
+		$this->data( $res ?: [ ] );
 
-		return $collect;
+		return $this;
 	}
 
 	/**
@@ -795,5 +792,4 @@ class Query {
 	public function getQueryParams( $type ) {
 		return $this->build->getBindExpression( $type );
 	}
-
 }
