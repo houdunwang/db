@@ -618,18 +618,24 @@ class Query implements \ArrayAccess, \Iterator {
 	public function where() {
 		$this->logic( 'AND' );
 		$args = func_get_args();
-		switch ( count( $args ) ) {
-			case 1:
-				$this->build->bindExpression( 'where', $args[0] );
-				break;
-			case 2:
-				$this->build->bindExpression( 'where', "{$args[0]} = ?" );
-				$this->build->bindParams( 'where', $args[1] );
-				break;
-			case 3:
-				$this->build->bindExpression( 'where', "{$args[0]} {$args[1]} ?" );
-				$this->build->bindParams( 'where', $args[2] );
-				break;
+		if ( is_array( $args[0] ) ) {
+			foreach ( $args as $v ) {
+				call_user_func_array( [ $this, 'where' ], $v );
+			}
+		} else {
+			switch ( count( $args ) ) {
+				case 1:
+					$this->build->bindExpression( 'where', $args[0] );
+					break;
+				case 2:
+					$this->build->bindExpression( 'where', "{$args[0]} = ?" );
+					$this->build->bindParams( 'where', $args[1] );
+					break;
+				case 3:
+					$this->build->bindExpression( 'where', "{$args[0]} {$args[1]} ?" );
+					$this->build->bindParams( 'where', $args[2] );
+					break;
+			}
 		}
 
 		return $this;
