@@ -10,6 +10,7 @@
 
 namespace houdunwang\db\connection;
 
+use houdunwang\config\Config;
 use PDO;
 use Closure;
 use Exception;
@@ -21,13 +22,6 @@ trait Connection {
 	protected $affectedRow;
 	//查询语句日志
 	protected static $queryLogs = [ ];
-	//查询实例
-	protected $query;
-
-	//初始化
-	public function __construct( $query ) {
-		$this->query = $query;
-	}
 
 	/**
 	 * 获取连接
@@ -38,7 +32,7 @@ trait Connection {
 	 */
 	public function link( $type = true ) {
 		static $links = [ ];
-		$mulConfig    = $this->query->config( $type ? 'write' : 'read' );
+		$mulConfig    = Config::get( 'database.' . ( $type ? 'write' : 'read' ) );
 		$this->config = $mulConfig[ array_rand( $mulConfig ) ];
 		$name         = serialize( $this->config );
 		if ( isset( $links[ $name ] ) ) {
@@ -47,7 +41,7 @@ trait Connection {
 		$dns            = $this->getDns();
 		$links[ $name ] = new PDO(
 			$dns, $this->config['user'], $this->config['password'],
-			[ PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'"]
+			[ PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'" ]
 		);
 		$links[ $name ]->setAttribute( PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION );
 		$this->execute( "SET sql_mode = ''" );
