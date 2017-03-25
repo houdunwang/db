@@ -28,23 +28,6 @@ class Db {
 	}
 
 	protected function config() {
-		//加载.env配置
-		if ( is_file( '.env' ) ) {
-			$config = [ ];
-			foreach ( file( '.env' ) as $file ) {
-				$data = explode( '=', $file );
-				if ( count( $data ) == 2 ) {
-					$config[ trim( $data[0] ) ] = trim( $data[1] );
-				}
-			}
-			Config::set( 'database.host', $config['DB_HOST'] );
-			Config::set( 'database.user', $config['DB_USER'] );
-			Config::set( 'database.password', $config['DB_PASSWORD'] );
-			Config::set( 'database.database', $config['DB_DATABASE'] );
-		}
-		//如果主机是LOCALHOST改为IP地址
-		$host = preg_match( '@localhost@i', c( 'database.host' ) ) ? '127.0.0.1' : c( 'database.host' );
-		c( 'database.host', $host );
 		//将公共数据库配置合并到 write 与 read 中
 		$config = Config::getExtName( 'database', [ 'write', 'read' ] );
 		if ( empty( $config['write'] ) ) {

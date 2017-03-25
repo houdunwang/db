@@ -21,7 +21,7 @@ trait Connection {
 	//本次查询影响的条数
 	protected $affectedRow;
 	//查询语句日志
-	protected static $queryLogs = [ ];
+	protected static $queryLogs = [];
 
 	/**
 	 * 获取连接
@@ -31,7 +31,7 @@ trait Connection {
 	 * @return mixed
 	 */
 	public function link( $type = true ) {
-		static $links = [ ];
+		static $links = [];
 		$mulConfig    = Config::get( 'database.' . ( $type ? 'write' : 'read' ) );
 		$this->config = $mulConfig[ array_rand( $mulConfig ) ];
 		$name         = serialize( $this->config );
@@ -58,7 +58,7 @@ trait Connection {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function execute( $sql, array $params = [ ] ) {
+	public function execute( $sql, array $params = [] ) {
 		//准备sql
 		$sth = $this->link( true )->prepare( $sql );
 		//绑定参数
@@ -90,7 +90,7 @@ trait Connection {
 	 */
 	protected function setParamsSort( array $params ) {
 		if ( is_numeric( key( $params ) ) && key( $params ) == 0 ) {
-			$tmp = [ ];
+			$tmp = [];
 			foreach ( $params as $key => $value ) {
 				$tmp[ $key + 1 ] = $value;
 			}
@@ -109,7 +109,7 @@ trait Connection {
 	 * @return bool
 	 * @throws \Exception
 	 */
-	public function query( $sql, array $params = [ ] ) {
+	public function query( $sql, array $params = [] ) {
 		//准备sql
 		$sth = $this->link( false )->prepare( $sql );
 		//设置保存数据
@@ -126,7 +126,7 @@ trait Connection {
 			//记录日志
 			self::$queryLogs[] = $sql . var_export( $params, true );
 
-			return $sth->fetchAll() ?: [ ];
+			return $sth->fetchAll() ?: [];
 		} catch ( Exception $e ) {
 			$error = $sth->errorInfo();
 			throw new Exception( $sql . " ;BindParams:" . var_export( $params, true ) . implode( ';', $error ) );
