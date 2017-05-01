@@ -452,7 +452,7 @@ class Query implements \ArrayAccess, \Iterator
      */
     public function replace($data)
     {
-        return $this->insertGetId($data, 'replace');
+        return $this->insert($data, 'replace');
     }
 
     /**
@@ -643,7 +643,7 @@ class Query implements \ArrayAccess, \Iterator
         $this->build->bindExpression('field', "count($field) AS m");
         $data = $this->first();
 
-        return $data ? $data['m'] : '';
+        return intval($data ? $data['m'] : 0);
     }
 
     public function max($field)
@@ -651,7 +651,7 @@ class Query implements \ArrayAccess, \Iterator
         $this->build->bindExpression('field', "max({$field}) AS m");
         $data = $this->first();
 
-        return $data ? $data['m'] : '';
+        return intval($data ? $data['m'] : 0);
     }
 
     public function min($field)
@@ -659,7 +659,7 @@ class Query implements \ArrayAccess, \Iterator
         $this->build->bindExpression('field', "min({$field}) AS m");
         $data = $this->first();
 
-        return $data ? $data['m'] : '';
+        return intval($data ? $data['m'] : 0);
     }
 
     public function avg($field)
@@ -667,7 +667,7 @@ class Query implements \ArrayAccess, \Iterator
         $this->build->bindExpression('field', "avg({$field}) AS m");
         $data = $this->first();
 
-        return $data ? $data['m'] : '';
+        return intval($data ? $data['m'] : 0);
     }
 
     public function sum($field)
@@ -675,7 +675,7 @@ class Query implements \ArrayAccess, \Iterator
         $this->build->bindExpression('field', "sum({$field}) AS m");
         $data = $this->first();
 
-        return $data ? $data['m'] : '';
+        return intval($data ? $data['m'] : 0);
     }
 
     public function logic($login)

@@ -29,7 +29,7 @@ class DbProvider extends Provider
     public function register()
     {
         $this->app->bind(
-            'Db',
+            'DbTest',
             function () {
                 return new Db();
             }

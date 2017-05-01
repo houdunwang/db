@@ -231,7 +231,7 @@ trait Connection
      */
     public function getInsertId()
     {
-        return $this->link()->lastInsertId();
+        return intval($this->link()->lastInsertId());
     }
 
     /**
