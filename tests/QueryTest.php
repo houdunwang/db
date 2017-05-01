@@ -173,10 +173,28 @@ class QueryTest extends Migrate
     /**
      * @test
      */
-    public function paginate(){
-        $data = Db::table( 'news' )->paginate(1);
-        print_r($data);
-        //显示页码链接
-        echo $data->links();
+    public function paginate()
+    {
+        $users = Db::table('news')->paginate(1);
+        $this->assertInternalType('string', $users->links());
+    }
+
+    /**
+     * @test
+     */
+    public function transaction()
+    {
+        Db::transaction(
+            function () {
+                $status = true;
+                if ( ! Db::execute('DELETE FROM news WHERE id=?', [1])) {
+                    $status = false;
+                }
+                if ( ! Db::execute('DELETE FROM news WHERE id=?', [3])) {
+                    $status = false;
+                }
+                $this->assertTrue($status);
+            }
+        );
     }
 }
