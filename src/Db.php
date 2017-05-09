@@ -38,8 +38,7 @@ class Db
         $config = Config::getExtName('database', ['write', 'read']);
         if (empty($config['write'])) {
             $config['write'][] = Config::getExtName(
-                'database',
-                [
+                'database', [
                     'write',
                     'read',
                 ]
@@ -47,8 +46,7 @@ class Db
         }
         if (empty($config['read'])) {
             $config['read'][] = Config::getExtName(
-                'database',
-                [
+                'database', [
                     'write',
                     'read',
                 ]
@@ -57,7 +55,7 @@ class Db
         //重设配置
         Config::set('database', $config);
         //缓存表字段
-        Config::set('database.cache_field', ! Config::get('app.debug'));
+        Config::set('database.cache_field', ! Config::get('database.debug'));
 
         return $this;
     }

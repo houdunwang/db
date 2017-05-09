@@ -483,13 +483,12 @@ class Query implements \ArrayAccess, \Iterator
      */
     public function first()
     {
-        if ($data = $this->query(
+        $data = $this->query(
             $this->build->select(),
             $this->build->getSelectParams()
-        )
-        ) {
-            return $res = $data ? $data[0] : [];
-        }
+        );
+
+        return $data ? $data[0] : [];
     }
 
     /**

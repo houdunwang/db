@@ -15,6 +15,8 @@ composer require houdunwang/db
 
 ```
 \houdunwang\config\Config::set( 'database', [
+    //调试模式
+    'debug'    => true,
     //读库列表
 	'read'     => [ ],
 	//写库列表
