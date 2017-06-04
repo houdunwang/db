@@ -120,9 +120,7 @@ class Query implements \ArrayAccess, \Iterator
     public function getFields()
     {
         static $cache = [];
-        if (Config::get('database.cache_field')
-            && isset($cache[$this->table])
-        ) {
+        if (Config::get('database.cache_field') && isset($cache[$this->table])) {
             return $cache[$this->table];
         }
         //缓存字段
@@ -140,8 +138,8 @@ class Query implements \ArrayAccess, \Iterator
                 $f ['null']            = $res ['Null'];
                 $f ['field']           = $res ['Field'];
                 $f ['key']             = ($res ['Key'] == "PRI"
-                        && $res['Extra'])
-                    || $res ['Key'] == "PRI";
+                                          && $res['Extra'])
+                                         || $res ['Key'] == "PRI";
                 $f ['default']         = $res ['Default'];
                 $f ['extra']           = $res ['Extra'];
                 $data [$res ['Field']] = $f;
@@ -310,7 +308,7 @@ class Query implements \ArrayAccess, \Iterator
             throw new Exception('缺少更新条件');
         }
         $sql = "UPDATE ".$this->getTable()." SET {$field}={$field}+$dec "
-            .$where;
+               .$where;
 
         return $this->execute($sql, $this->build->getUpdateParams());
     }
@@ -332,7 +330,7 @@ class Query implements \ArrayAccess, \Iterator
         }
 
         $sql = "UPDATE ".$this->getTable()." SET {$field}={$field}-$dec "
-            .$where;
+               .$where;
 
         return $this->execute($sql, $this->build->getUpdateParams());
     }
@@ -381,17 +379,11 @@ class Query implements \ArrayAccess, \Iterator
     public function delete($id = [])
     {
         if ( ! empty($id)) {
-            $this->whereIn(
-                $this->getPrimaryKey(),
-                is_array($id) ? $id : explode(',', $id)
-            );
+            $this->whereIn($this->getPrimaryKey(), is_array($id) ? $id : explode(',', $id));
         }
         //必须有条件才可以删除
         if ($this->build->getBindExpression('where')) {
-            return $this->execute(
-                $this->build->delete(),
-                $this->build->getDeleteParams()
-            );
+            return $this->execute($this->build->delete(), $this->build->getDeleteParams());
         }
 
         return false;
@@ -466,11 +458,7 @@ class Query implements \ArrayAccess, \Iterator
     {
         if ($id) {
             $this->where($this->getPrimaryKey(), $id);
-            if ($data = $this->query(
-                $this->build->select(),
-                $this->build->getSelectParams()
-            )
-            ) {
+            if ($data = $this->query($this->build->select(), $this->build->getSelectParams())) {
                 return $data ? $data[0] : [];
             }
         }
@@ -483,10 +471,7 @@ class Query implements \ArrayAccess, \Iterator
      */
     public function first()
     {
-        $data = $this->query(
-            $this->build->select(),
-            $this->build->getSelectParams()
-        );
+        $data = $this->query($this->build->select(), $this->build->getSelectParams());
 
         return $data ? $data[0] : [];
     }

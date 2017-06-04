@@ -13,6 +13,6 @@ use houdunwang\framework\build\Facade;
 
 class DbFacade extends Facade {
 	public static function getFacadeAccessor() {
-		return 'DbTest';
+		return 'Db';
 	}
 }
