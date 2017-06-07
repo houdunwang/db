@@ -361,7 +361,9 @@ class Query implements \ArrayAccess, \Iterator
                 $this->where($pri, $data[$pri]);
             }
         }
-
+        if(! $this->build->getBindExpression('where')){
+            throw new Exception('没有更新条件不允许更新');
+        }
         return $this->execute(
             $this->build->update(),
             $this->build->getUpdateParams()
