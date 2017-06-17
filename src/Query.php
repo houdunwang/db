@@ -67,12 +67,7 @@ class Query implements \ArrayAccess, \Iterator
     public function table($table, $full = false)
     {
         //模型实例时不允许改表名
-        $this->table = $this->table
-            ?: ($full
-                ? $table
-                : Config::get(
-                    'database.prefix'
-                ).$table);
+        $this->table = $this->table ?: ($full ? $table : Config::get('database.prefix').$table);
         //缓存表字段
         $this->fields = $this->getFields();
         //获取表主键
@@ -115,12 +110,13 @@ class Query implements \ArrayAccess, \Iterator
     /**
      * 获取表字段信息
      *
-     * @return array|bool|void
+     * @return array|int|mixed|null|void
+     * @throws \Exception
      */
     public function getFields()
     {
         static $cache = [];
-        if (Config::get('database.cache_field') && isset($cache[$this->table])) {
+        if (Config::get('database.cache_field') && ! empty($cache[$this->table])) {
             return $cache[$this->table];
         }
         //缓存字段
@@ -129,7 +125,7 @@ class Query implements \ArrayAccess, \Iterator
         if (empty($data)) {
             $sql = "show columns from ".$this->table;
             if ( ! $result = $this->connection->query($sql)) {
-                return [];
+                throw new Exception("获取{$this->table}表字段信息失败");
             }
             $data = [];
             foreach ((array)$result as $res) {
@@ -177,23 +173,26 @@ class Query implements \ArrayAccess, \Iterator
     public function cache($name, $data = null)
     {
         if ( ! Config::get('database.cache_field')) {
-            return;
+            return [];
         }
         //目录检测
         $dir = Config::get('database.cache_dir');
         Dir::create($dir);
+        file_put_contents($dir.'/index.html', 'Not allowed to access');
         //缓存文件
-        $file = $dir.'/'.md5($name).'.php';
+        $file = $dir.'/'.($name).'.php';
         //读取数据
-        if (is_null($data) && is_file($file)) {
-            $data = file_get_contents($file);
+        if (is_null($data)) {
+            $result = [];
+            if (is_file($file)) {
+                $result = unserialize(file_get_contents($file));
+            }
 
-            return unserialize($data) ?: null;
+            return is_array($result) ? $result : [];
+        } else {
+            //写入数据
+            return file_put_contents($file, serialize($data));
         }
-        //写入数据
-        $data = serialize($data);
-
-        return file_put_contents($file, $data);
     }
 
     /**
@@ -361,9 +360,10 @@ class Query implements \ArrayAccess, \Iterator
                 $this->where($pri, $data[$pri]);
             }
         }
-        if(! $this->build->getBindExpression('where')){
+        if ( ! $this->build->getBindExpression('where')) {
             throw new Exception('没有更新条件不允许更新');
         }
+
         return $this->execute(
             $this->build->update(),
             $this->build->getUpdateParams()
