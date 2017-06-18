@@ -234,15 +234,16 @@ class Query implements \ArrayAccess, \Iterator
     /**
      * 分页查询
      *
-     * @param     $row 每页显示数量
-     * @param int $pageNum
+     * @param int $row 每页显示数量
+     * @param int $pageNum 页面数量
+     * @param int $count 总数
      *
      * @return mixed
      */
-    public function paginate($row, $pageNum = 8)
+    public function paginate($row, $pageNum = 8, $count = -1)
     {
         $obj = unserialize(serialize($this));
-        Page::row($row)->pageNum($pageNum)->make($obj->count());
+        Page::row($row)->pageNum($pageNum)->make($count == -1 ? $obj->count() : $count);
         $res = $this->limit(Page::limit())->get();
         $this->data($res ?: []);
 
