@@ -44,8 +44,8 @@ class Query implements \ArrayAccess, \Iterator
         $this->connection = new $class($this);
 
         //SQL语句编译引擎
-        $driver      = 'houdunwang\db\build\\'.$driver;
-        $this->build = new $driver($this);
+        $buile       = 'houdunwang\db\build\\'.$driver;
+        $this->build = new $buile($this);
 
         return $this;
     }
@@ -116,12 +116,12 @@ class Query implements \ArrayAccess, \Iterator
     public function getFields()
     {
         static $cache = [];
-        if (Config::get('database.cache_field') && ! empty($cache[$this->table])) {
+        if ( ! empty($cache[$this->table])) {
             return $cache[$this->table];
         }
+        $isCache = Config::get('database.cache_field');
         //缓存字段
-        $name = Config::get('database.database').'.'.$this->table;
-        $data = $this->cache($name);
+        $data = $isCache ? $this->cache($this->table) : [];
         if (empty($data)) {
             $sql = "show columns from ".$this->table;
             if ( ! $result = $this->connection->query($sql)) {
@@ -133,15 +133,15 @@ class Query implements \ArrayAccess, \Iterator
                 $f ['type']            = $res ['Type'];
                 $f ['null']            = $res ['Null'];
                 $f ['field']           = $res ['Field'];
-                $f ['key']             = ($res ['Key'] == "PRI"
-                                          && $res['Extra'])
+                $f ['key']             = ($res ['Key'] == "PRI" && $res['Extra'])
                                          || $res ['Key'] == "PRI";
                 $f ['default']         = $res ['Default'];
                 $f ['extra']           = $res ['Extra'];
                 $data [$res ['Field']] = $f;
             }
-            $this->cache($name, $data);
+            $isCache and $this->cache($this->table, $data);
         }
+        $cache[$this->table] = $data;
 
         return $data;
     }
@@ -154,6 +154,9 @@ class Query implements \ArrayAccess, \Iterator
     public function getPrimaryKey()
     {
         static $cache = [];
+        if (isset($cache[$this->table])) {
+            return $cache[$this->table];
+        }
         $fields = $this->getFields($this->table);
         foreach ($fields as $v) {
             if ($v['key'] == 1) {
@@ -172,13 +175,9 @@ class Query implements \ArrayAccess, \Iterator
      */
     public function cache($name, $data = null)
     {
-        if ( ! Config::get('database.cache_field')) {
-            return [];
-        }
         //目录检测
         $dir = Config::get('database.cache_dir');
         Dir::create($dir);
-        file_put_contents($dir.'/index.html', 'Not allowed to access');
         //缓存文件
         $file = $dir.'/'.($name).'.php';
         //读取数据
@@ -234,9 +233,9 @@ class Query implements \ArrayAccess, \Iterator
     /**
      * 分页查询
      *
-     * @param int $row 每页显示数量
+     * @param int $row     每页显示数量
      * @param int $pageNum 页面数量
-     * @param int $count 总数
+     * @param int $count   总数
      *
      * @return mixed
      */

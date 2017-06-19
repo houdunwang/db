@@ -19,8 +19,10 @@ trait Connection
 {
     //数据库连接配置
     protected $config;
+
     //本次查询影响的条数
     protected $affectedRow;
+
     //查询语句日志
     protected static $queryLogs = [];
 
@@ -34,21 +36,19 @@ trait Connection
     public function link($type = true)
     {
         static $links = [];
-        $mulConfig    = Config::get('database.'.($type ? 'write' : 'read'));
-        $this->config = $mulConfig[array_rand($mulConfig)];
-        $name         = serialize($this->config);
-        if (isset($links[$name])) {
-            return $links[$name];
+        $engine = ($type ? 'write' : 'read');
+        if ( ! isset($links[$engine])) {
+            $mulConfig    = Config::get('database.'.$engine);
+            $this->config = $mulConfig[array_rand($mulConfig)];
+            $links[$engine] = new PDO(
+                $this->getDns(), $this->config['user'], $this->config['password'],
+                [PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'"]
+            );
+            $links[$engine]->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->execute("SET sql_mode = ''");
         }
-        $dns          = $this->getDns();
-        $links[$name] = new PDO(
-            $dns, $this->config['user'], $this->config['password'],
-            [PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'"]
-        );
-        $links[$name]->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $this->execute("SET sql_mode = ''");
 
-        return $links[$name];
+        return $links[$engine];
     }
 
     /**

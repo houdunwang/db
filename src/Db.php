@@ -34,16 +34,20 @@ class Db
 
     public function config()
     {
-        //将公共数据库配置合并到 write 与 read 中
-        $config = Config::getExtName('database', ['write', 'read']);
-        if (empty($config['write'])) {
-            $config['write'][] = Config::getExtName('database', ['write', 'read']);
+        static $isLoad = false;
+        if ($isLoad === false) {
+            //将公共数据库配置合并到 write 与 read 中
+            $config = Config::getExtName('database', ['write', 'read']);
+            if (empty($config['write'])) {
+                $config['write'][] = Config::getExtName('database', ['write', 'read']);
+            }
+            if (empty($config['read'])) {
+                $config['read'][] = Config::getExtName('database', ['write', 'read']);
+            }
+            //重设配置
+            Config::set('database', $config);
+            $isLoad = true;
         }
-        if (empty($config['read'])) {
-            $config['read'][] = Config::getExtName('database', ['write', 'read']);
-        }
-        //重设配置
-        Config::set('database', $config);
 
         return $this;
     }
