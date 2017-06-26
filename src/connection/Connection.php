@@ -37,18 +37,18 @@ trait Connection
     {
         static $links = [];
         $engine = ($type ? 'write' : 'read');
-        if ( ! isset($links[$engine])) {
-            $mulConfig    = Config::get('database.'.$engine);
-            $this->config = $mulConfig[array_rand($mulConfig)];
-            $links[$engine] = new PDO(
+        $mulConfig    = Config::get('database.'.$engine);
+        $this->config = $mulConfig[array_rand($mulConfig)];
+        $cacheName = serialize($this->config);
+        if ( ! isset($links[$cacheName])) {
+            $links[$cacheName] = new PDO(
                 $this->getDns(), $this->config['user'], $this->config['password'],
                 [PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'"]
             );
-            $links[$engine]->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $this->execute("SET sql_mode = ''");
+            $links[$cacheName]->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         }
 
-        return $links[$engine];
+        return $links[$cacheName];
     }
 
     /**
