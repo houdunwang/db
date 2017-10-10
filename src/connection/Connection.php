@@ -36,10 +36,10 @@ trait Connection
     public function link($type = true)
     {
         static $links = [];
-        $engine = ($type ? 'write' : 'read');
+        $engine       = ($type ? 'write' : 'read');
         $mulConfig    = Config::get('database.'.$engine);
         $this->config = $mulConfig[array_rand($mulConfig)];
-        $cacheName = serialize($this->config);
+        $cacheName    = serialize($this->config);
         if ( ! isset($links[$cacheName])) {
             $links[$cacheName] = new PDO(
                 $this->getDns(), $this->config['user'], $this->config['password'],
@@ -131,11 +131,7 @@ trait Connection
         //绑定参数
         $params = $this->setParamsSort($params);
         foreach ((array)$params as $key => $value) {
-            $sth->bindParam(
-                $key,
-                $params[$key],
-                is_numeric($params[$key]) ? PDO::PARAM_INT : PDO::PARAM_STR
-            );
+            $sth->bindParam($key, $params[$key], is_numeric($params[$key]) ? PDO::PARAM_INT : PDO::PARAM_STR);
         }
         try {
             //执行查询
@@ -147,12 +143,7 @@ trait Connection
             return $sth->fetchAll() ?: [];
         } catch (Exception $e) {
             $error = $sth->errorInfo();
-            throw new Exception(
-                $sql." ;BindParams:".var_export($params, true).implode(
-                    ';',
-                    $error
-                )
-            );
+            throw new Exception($sql." ;BindParams:".var_export($params, true).implode(';', $error));
         }
     }
 
@@ -178,7 +169,7 @@ trait Connection
         try {
             $this->beginTransaction();
             //执行事务
-            $closure();
+            call_user_func($closure);
             $this->commit();
         } catch (Exception $e) {
             //回滚事务

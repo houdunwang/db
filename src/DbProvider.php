@@ -10,6 +10,7 @@
 
 namespace houdunwang\db;
 
+use houdunwang\config\Config;
 use houdunwang\framework\build\Provider;
 
 /**
@@ -20,10 +21,12 @@ use houdunwang\framework\build\Provider;
 class DbProvider extends Provider
 {
     //延迟加载
-    public $defer = true;
+    public $defer = false;
 
     public function boot()
     {
+        //旧版本没有port,后期删除
+        Config::set('database.port', 3306);
     }
 
     public function register()

@@ -21,7 +21,6 @@ class Mysql implements DbInterface
      */
     public function getDns()
     {
-        return $dns = 'mysql:host='.$this->config['host']
-            .';dbname='.$this->config['database'];
+        return $dns = 'mysql:dbname='.$this->config['database'].';host='.$this->config['host'].';port='.$this->config['port'];
     }
 }

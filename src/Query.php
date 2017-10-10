@@ -51,6 +51,10 @@ class Query implements \ArrayAccess, \Iterator
     }
 
     //获取表前缀
+
+    /**
+     * @return mixed
+     */
     protected function getPrefix()
     {
         return Config::get('database.prefix');
@@ -116,12 +120,12 @@ class Query implements \ArrayAccess, \Iterator
     public function getFields()
     {
         static $cache = [];
-        if ( ! empty($cache[$this->table])) {
+        if ( ! Config::get('app.debug') && ! empty($cache[$this->table])) {
             return $cache[$this->table];
         }
         $isCache = Config::get('database.cache_field');
         //缓存字段
-        $data = $isCache ? $this->cache($this->table) : [];
+        $data = $isCache && ! Config::get('app.debug') ? $this->cache($this->table) : [];
         if (empty($data)) {
             $sql = "show columns from ".$this->table;
             if ( ! $result = $this->connection->query($sql)) {
@@ -241,8 +245,9 @@ class Query implements \ArrayAccess, \Iterator
      */
     public function paginate($row, $pageNum = 8, $count = -1)
     {
-        $obj = unserialize(serialize($this));
-        Page::row($row)->pageNum($pageNum)->make($count == -1 ? $obj->count() : $count);
+        $obj   = unserialize(serialize($this));
+        $count = is_string($count) ? $obj->count($count) : ($count == -1 ? $obj->count() : $count);
+        Page::row($row)->pageNum($pageNum)->make($count);
         $res = $this->limit(Page::limit())->get();
         $this->data($res ?: []);
 
@@ -510,10 +515,7 @@ class Query implements \ArrayAccess, \Iterator
             $this->field($field);
         }
 
-        return $this->query(
-            $this->build->select(),
-            $this->build->getSelectParams()
-        );
+        return $this->query($this->build->select(), $this->build->getSelectParams());
     }
 
     /**
@@ -682,6 +684,11 @@ class Query implements \ArrayAccess, \Iterator
         return $this;
     }
 
+    /**
+     * 设置条件
+     *
+     * @return $this
+     */
     public function where()
     {
         $this->logic('AND');
@@ -700,10 +707,7 @@ class Query implements \ArrayAccess, \Iterator
                     $this->build->bindParams('where', $args[1]);
                     break;
                 case 3:
-                    $this->build->bindExpression(
-                        'where',
-                        "{$args[0]} {$args[1]} ?"
-                    );
+                    $this->build->bindExpression('where', "{$args[0]} {$args[1]} ?");
                     $this->build->bindParams('where', $args[2]);
                     break;
             }
@@ -712,7 +716,14 @@ class Query implements \ArrayAccess, \Iterator
         return $this;
     }
 
-    //预准备whereRaw
+    /**
+     * 预准备whereRaw
+     *
+     * @param       $sql
+     * @param array $params
+     *
+     * @return $this
+     */
     public function whereRaw($sql, array $params = [])
     {
         $this->logic('AND');
@@ -724,6 +735,11 @@ class Query implements \ArrayAccess, \Iterator
         return $this;
     }
 
+    /**
+     * 查询或
+     *
+     * @return $this
+     */
     public function orWhere()
     {
         $this->logic('OR');
@@ -732,6 +748,11 @@ class Query implements \ArrayAccess, \Iterator
         return $this;
     }
 
+    /**
+     * 查询与
+     *
+     * @return $this
+     */
     public function andWhere()
     {
         $this->build->bindExpression('where', ' AND ');
@@ -756,6 +777,15 @@ class Query implements \ArrayAccess, \Iterator
         return $this;
     }
 
+    /**
+     * in 查询
+     *
+     * @param $field
+     * @param $params
+     *
+     * @return $this
+     * @throws \Exception
+     */
     public function whereIn($field, $params)
     {
         if ( ! is_array($params) || empty($params)) {
@@ -786,10 +816,7 @@ class Query implements \ArrayAccess, \Iterator
             $where .= '?,';
             $this->build->bindParams('where', $value);
         }
-        $this->build->bindExpression(
-            'where',
-            " $field NOT IN (".substr($where, 0, -1).")"
-        );
+        $this->build->bindExpression('where', " $field NOT IN (".substr($where, 0, -1).")");
 
         return $this;
     }
@@ -828,11 +855,7 @@ class Query implements \ArrayAccess, \Iterator
     public function join()
     {
         $args = func_get_args();
-        $this->build->bindExpression(
-            'join',
-            " INNER JOIN ".$this->getPrefix()
-            ."{$args[0]} {$args[0]} ON {$args[1]} {$args[2]} {$args[3]}"
-        );
+        $this->build->bindExpression('join', " INNER JOIN ".$this->getPrefix()."{$args[0]} {$args[0]} ON {$args[1]} {$args[2]} {$args[3]}");
 
         return $this;
     }
@@ -845,11 +868,7 @@ class Query implements \ArrayAccess, \Iterator
     public function leftJoin()
     {
         $args = func_get_args();
-        $this->build->bindExpression(
-            'join',
-            " LEFT JOIN ".$this->getPrefix()
-            ."{$args[0]} {$args[0]} ON {$args[1]} {$args[2]} {$args[3]}"
-        );
+        $this->build->bindExpression('join', " LEFT JOIN ".$this->getPrefix()."{$args[0]} {$args[0]} ON {$args[1]} {$args[2]} {$args[3]}");
 
         return $this;
     }
@@ -862,11 +881,7 @@ class Query implements \ArrayAccess, \Iterator
     public function rightJoin()
     {
         $args = func_get_args();
-        $this->build->bindExpression(
-            'join',
-            " RIGHT JOIN ".$this->getPrefix()
-            ."{$args[0]} {$args[0]} ON {$args[1]} {$args[2]} {$args[3]}"
-        );
+        $this->build->bindExpression('join', " RIGHT JOIN ".$this->getPrefix()."{$args[0]} {$args[0]} ON {$args[1]} {$args[2]} {$args[3]}");
 
         return $this;
     }

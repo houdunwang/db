@@ -39,7 +39,6 @@ abstract class Build {
 		$this->query  = $query;
 	}
 
-
 	public function getBindExpression( $name ) {
 		return isset( $this->params[ $name ]['expression'] ) ? $this->params[ $name ]['expression'] : [ ];
 	}
