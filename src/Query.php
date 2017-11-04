@@ -666,17 +666,19 @@ class Query implements \ArrayAccess, \Iterator
         return intval($data ? $data['m'] : 0);
     }
 
+    /**
+     * 查询符号
+     *
+     * @param $login
+     *
+     * @return $this|bool
+     */
     public function logic($login)
     {
         //如果上一次设置了and或or语句时忽略
         $expression = $this->build->getBindExpression('where');
-        if (empty($expression)
-            || preg_match(
-                '/^\s*(OR|AND)\s*$/i',
-                array_pop($expression)
-            )
-        ) {
-            return false;
+        if (empty($expression) || preg_match('/^\s*(OR|AND)\s*$/i', array_pop($expression))) {
+            return $this;
         }
 
         $this->build->bindExpression('where', trim($login));
@@ -691,7 +693,6 @@ class Query implements \ArrayAccess, \Iterator
      */
     public function where()
     {
-        $this->logic('AND');
         $args = func_get_args();
         if (is_array($args[0])) {
             foreach ($args as $v) {
@@ -700,15 +701,52 @@ class Query implements \ArrayAccess, \Iterator
         } else {
             switch (count($args)) {
                 case 1:
-                    $this->build->bindExpression('where', $args[0]);
+                    $this->logic('AND')->build->bindExpression('where', $args[0]);
                     break;
                 case 2:
-                    $this->build->bindExpression('where', "{$args[0]} = ?");
+                    $this->logic('AND')->build->bindExpression('where', "{$args[0]} = ?");
                     $this->build->bindParams('where', $args[1]);
                     break;
                 case 3:
-                    $this->build->bindExpression('where', "{$args[0]} {$args[1]} ?");
+                    $this->logic('AND')->build->bindExpression('where', "{$args[0]} {$args[1]} ?");
                     $this->build->bindParams('where', $args[2]);
+                    break;
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * 设置条件
+     *
+     * @return $this
+     */
+    public function whereNotEmpty()
+    {
+        $args = func_get_args();
+        if (is_array($args[0])) {
+            foreach ($args as $v) {
+                call_user_func_array([$this, 'whereNotEmpty'], $v);
+            }
+        } else {
+            switch (count($args)) {
+                case 1:
+                    if ( ! empty($args[0])) {
+                        $this->logic('AND')->build->bindExpression('where', $args[0]);
+                    }
+                    break;
+                case 2:
+                    if ( ! empty($args[1])) {
+                        $this->logic('AND')->build->bindExpression('where', "{$args[0]} = ?");
+                        $this->build->bindParams('where', $args[1]);
+                    }
+                    break;
+                case 3:
+                    if ( ! empty($args[2])) {
+                        $this->logic('AND')->build->bindExpression('where', "{$args[0]} {$args[1]} ?");
+                        $this->build->bindParams('where', $args[2]);
+                    }
                     break;
             }
         }
