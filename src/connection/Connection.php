@@ -46,6 +46,7 @@ trait Connection
                 [PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES 'UTF8'"]
             );
             $links[$cacheName]->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->execute("SET sql_mode = ''");
         }
 
         return $links[$cacheName];
@@ -54,8 +55,8 @@ trait Connection
     /**
      * 没有结果集的查询
      *
-     * @param       $sql
-     * @param array $params
+     * @param        $sql
+     * @param array  $params
      *
      * @return bool
      * @throws \Exception
@@ -116,8 +117,8 @@ trait Connection
     /**
      * 有返回结果的查询
      *
-     * @param       $sql
-     * @param array $params
+     * @param        $sql
+     * @param array  $params
      *
      * @return bool
      * @throws \Exception

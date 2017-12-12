@@ -30,6 +30,10 @@ class Query implements \ArrayAccess, \Iterator
     protected $connection;
     //sql分析实例
     protected $build;
+    //当前操作SQL
+    protected $sql;
+    //调用查询的模型
+    protected $model;
 
     /**
      * 根据驱动创建数据库连接对象
@@ -40,19 +44,79 @@ class Query implements \ArrayAccess, \Iterator
     {
         $driver = ucfirst(Config::get('database.driver'));
         //SQL数据库连接引擎
-        $class            = '\houdunwang\db\connection\\'.$driver;
-        $this->connection = new $class($this);
-
+        $this->setConnection($driver);
         //SQL语句编译引擎
-        $buile       = 'houdunwang\db\build\\'.$driver;
-        $this->build = new $buile($this);
+        $this->setBuild($driver);
 
         return $this;
     }
 
-    //获取表前缀
+    /**
+     * 获取连接对象
+     *
+     * @return mixed
+     */
+    public function getConnection()
+    {
+        return $this->connection;
+    }
 
     /**
+     * 设置连接对象
+     *
+     * @param $driver
+     */
+    public function setConnection($driver)
+    {
+        //SQL数据库连接引擎
+        $class            = '\houdunwang\db\connection\\'.$driver;
+        $this->connection = new $class($this);
+    }
+
+    /**
+     * 获取查询对象
+     *
+     * @return mixed
+     */
+    public function getBuild()
+    {
+        return $this->build;
+    }
+
+    /**
+     * 设置查询对象
+     *
+     * @param $driver
+     */
+    public function setBuild($driver)
+    {
+        $buile       = 'houdunwang\db\build\\'.$driver;
+        $this->build = new $buile($this);
+    }
+
+    /**
+     * 获取当前操作SQL
+     *
+     * @return mixed
+     */
+    public function getSql()
+    {
+        return $this->sql;
+    }
+
+    /**
+     * 设置当前操作SQL
+     *
+     * @param mixed $sql
+     */
+    public function setSql($sql)
+    {
+        $this->sql = $sql;
+    }
+
+    /**
+     * 获取表前缀
+     *
      * @return mixed
      */
     protected function getPrefix()
@@ -81,6 +145,26 @@ class Query implements \ArrayAccess, \Iterator
     }
 
     /**
+     * 获取调用查询的模型
+     *
+     * @return mixed
+     */
+    public function getModel()
+    {
+        return $this->model;
+    }
+
+    /**
+     * 设置调用查询的模型
+     *
+     * @param mixed $model
+     */
+    public function setModel($model)
+    {
+        $this->model = $model;
+    }
+
+    /**
      * 获取表
      *
      * @return mixed
@@ -101,7 +185,7 @@ class Query implements \ArrayAccess, \Iterator
     {
         $new = [];
         if (is_array($data)) {
-            foreach ($data as $name => $value) {
+            foreach ((array)$data as $name => $value) {
                 if (key_exists($name, $this->fields)) {
                     $new[$name] = $value;
                 }
@@ -120,12 +204,14 @@ class Query implements \ArrayAccess, \Iterator
     public function getFields()
     {
         static $cache = [];
-        if ( ! Config::get('app.debug') && ! empty($cache[$this->table])) {
+        if (empty($this->table)) {
+            return [];
+        }
+        if ( ! empty($cache[$this->table])) {
             return $cache[$this->table];
         }
-        $isCache = Config::get('database.cache_field');
         //缓存字段
-        $data = $isCache && ! Config::get('app.debug') ? $this->cache($this->table) : [];
+        $data = Config::get('app.debug') ? [] : $this->cache($this->table);
         if (empty($data)) {
             $sql = "show columns from ".$this->table;
             if ( ! $result = $this->connection->query($sql)) {
@@ -143,7 +229,7 @@ class Query implements \ArrayAccess, \Iterator
                 $f ['extra']           = $res ['Extra'];
                 $data [$res ['Field']] = $f;
             }
-            $isCache and $this->cache($this->table, $data);
+            $this->cache($this->table, $data);
         }
         $cache[$this->table] = $data;
 
@@ -274,7 +360,9 @@ class Query implements \ArrayAccess, \Iterator
      */
     public function execute($sql, array $params = [])
     {
-        $result = $this->connection->execute($sql, $params);
+        self::setSql($sql);
+        Middleware::web('database_execute', $this);
+        $result = $this->connection->execute($sql, $params, $this);
         $this->build->reset();
 
         return $result;
@@ -290,7 +378,9 @@ class Query implements \ArrayAccess, \Iterator
      */
     public function query($sql, array $params = [])
     {
-        $data = $this->connection->query($sql, $params);
+        self::setSql($sql);
+        Middleware::web('database_query');
+        $data = $this->connection->query($sql, $params, $this);
         $this->build->reset();
 
         return $data;
@@ -311,8 +401,7 @@ class Query implements \ArrayAccess, \Iterator
         if (empty($where)) {
             throw new Exception('缺少更新条件');
         }
-        $sql = "UPDATE ".$this->getTable()." SET {$field}={$field}+$dec "
-               .$where;
+        $sql = "UPDATE ".$this->getTable()." SET {$field}={$field}+$dec ".$where;
 
         return $this->execute($sql, $this->build->getUpdateParams());
     }
@@ -333,8 +422,7 @@ class Query implements \ArrayAccess, \Iterator
             throw new Exception('缺少更新条件');
         }
 
-        $sql = "UPDATE ".$this->getTable()." SET {$field}={$field}-$dec "
-               .$where;
+        $sql = "UPDATE ".$this->getTable()." SET {$field}={$field}-$dec ".$where;
 
         return $this->execute($sql, $this->build->getUpdateParams());
     }
@@ -369,10 +457,7 @@ class Query implements \ArrayAccess, \Iterator
             throw new Exception('没有更新条件不允许更新');
         }
 
-        return $this->execute(
-            $this->build->update(),
-            $this->build->getUpdateParams()
-        );
+        return $this->execute($this->build->update(), $this->build->getUpdateParams());
     }
 
     /**
@@ -429,17 +514,13 @@ class Query implements \ArrayAccess, \Iterator
         if (empty($data)) {
             throw new Exception('没有数据用于插入');
         }
-
         foreach ($data as $k => $v) {
             $this->build->bindExpression('field', "`$k`");
             $this->build->bindExpression('values', '?');
             $this->build->bindParams('values', $v);
         }
 
-        return $this->execute(
-            $this->build->$action(),
-            $this->build->getInsertParams()
-        );
+        return $this->execute($this->build->$action(), $this->build->getInsertParams());
     }
 
     /**
