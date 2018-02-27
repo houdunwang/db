@@ -793,21 +793,15 @@ class Query implements \ArrayAccess, \Iterator
         } else {
             switch (count($args)) {
                 case 1:
-                    if ( ! is_null($args[0])) {
-                        $this->logic('AND')->build->bindExpression('where', $args[0]);
-                    }
+                    $this->logic('AND')->build->bindExpression('where', $args[0]);
                     break;
                 case 2:
-                    if ( ! is_null($args[0]) && ! is_null($args[1])) {
-                        $this->logic('AND')->build->bindExpression('where', "{$args[0]} = ?");
-                        $this->build->bindParams('where', $args[1]);
-                    }
+                    $this->logic('AND')->build->bindExpression('where', "{$args[0]} = ?");
+                    $this->build->bindParams('where', $args[1]);
                     break;
                 case 3:
-                    if ( ! is_null($args[0]) && ! is_null($args[1]) && ! is_null($args[2])) {
-                        $this->logic('AND')->build->bindExpression('where', "{$args[0]} {$args[1]} ?");
-                        $this->build->bindParams('where', $args[2]);
-                    }
+                    $this->logic('AND')->build->bindExpression('where', "{$args[0]} {$args[1]} ?");
+                    $this->build->bindParams('where', $args[2]);
                     break;
             }
         }
