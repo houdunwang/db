@@ -80,11 +80,15 @@ class Mysql extends Build {
 		return str_replace( [
 			'%table%',
 			'%using%',
-			'%where%'
+			'%where%',
+            '%orderBy%',
+            '%limit%'
 		], [
 			$this->parseTable(),
 			$this->parseUsing(),
 			$this->parseWhere(),
-		], "DELETE FROM %table% %using% %where%" );
+            $this->parseOrderBy(),
+            $this->parseLimit(),
+		], "DELETE FROM %table% %using% %where% %orderBy% %limit%" );
 	}
 }
